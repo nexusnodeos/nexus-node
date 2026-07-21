@@ -1,489 +1,302 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import React, { useState } from "react";
+import { 
+  Calendar, CheckCircle2, Circle, User, ShieldCheck, 
+  TrendingUp, ArrowRight, BarChart3, ChevronRight, Award
+} from "lucide-react";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY as string;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-interface Goal {
-  id: string;
-  phase_number: number;
-  title: string;
-  timeframe: string;
-  kpi_target: string;
-  progress_percentage: number;
-}
-
+// Tipos de datos
 interface Task {
   id: string;
-  goal_id: string;
-  week_number: number;
-  week_label: string;
-  weekly_goal: string;
-  day_number: number;
-  day_label: string;
-  step_order: number;
+  phase: number;
+  week: number;
+  dayName: "Lunes" | "Martes" | "Miércoles" | "Jueves" | "Viernes";
   title: string;
   description: string;
-  step_by_step: string;
-  ideal_perfection_goal: string;
-  impact_purpose: string;
-  assignee: 'Rodrigo (CEO & Tech)' | 'Federico (COO)' | 'Rodrigo & Federico (Conjunto)';
-  status: 'Pendiente' | 'En Progreso' | 'Completada';
-  ai_rescue_prompt: string;
+  assignee: "Rodrigo" | "Federico" | "Ambos";
+  completed: boolean;
 }
 
-export default function DailyFoundersDashboard() {
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [selectedGoalId, setSelectedGoalId] = useState<string | 'ALL'>('ALL');
-  const [activeAssignee, setActiveAssignee] = useState<string>('ALL');
-  const [selectedDayLabel, setSelectedDayLabel] = useState<string>('ALL');
-  const [selectedPrompt, setSelectedPrompt] = useState<Task | null>(null);
-  const [copied, setCopied] = useState(false);
+export default function CalendarDashboard() {
+  // Estados para Navegación Interactiva
+  const [selectedPhase, setSelectedPhase] = useState<number>(1);
+  const [selectedWeek, setSelectedWeek] = useState<number>(1);
+  const [selectedDay, setSelectedDay] = useState<string>("Lunes");
 
-  // Cargar datos y calcular progreso dinámico
-  const fetchData = async () => {
-    const { data: goalsData } = await supabase
-      .from('goals')
-      .select('*')
-      .order('phase_number', { ascending: true });
+  // Estado de Tareas de Muestra (Sincronizable con Supabase)
+  const [tasks, setTasks] = useState<Task[]>([
+    { id: "1", phase: 1, week: 1, dayName: "Lunes", title: "Diseño del Esquema SQL Relacional", description: "Crear tablas en Supabase con RLS.", assignee: "Rodrigo", completed: true },
+    { id: "2", phase: 1, week: 1, dayName: "Lunes", title: "Definición del ICP Minero", description: "Filtros para 50 mineras de Cobre/Oro.", assignee: "Federico", completed: true },
+    { id: "3", phase: 1, week: 1, dayName: "Martes", title: "Scraping Catastro Minero", description: "Extracción de títulos activos de la ANM/SGM.", assignee: "Federico", completed: true },
+    { id: "4", phase: 1, week: 1, dayName: "Martes", title: "API Route de Ingesta de Leads", description: "Endpoint Next.js para carga masiva de CSV.", assignee: "Rodrigo", completed: false },
+    { id: "5", phase: 1, week: 1, dayName: "Miércoles", title: "Setup Dominio & Resend API", description: "Configuración de SPF, DKIM y DMARC.", assignee: "Rodrigo", completed: false },
+    { id: "6", phase: 1, week: 1, dayName: "Miércoles", title: "Redacción Copy Email Outbound", description: "Copy enfocado en cobro en 48 hrs.", assignee: "Federico", completed: false },
+    { id: "7", phase: 1, week: 1, dayName: "Jueves", title: "Lanzamiento de Campaña Outbound", description: "Envío masivo a 50 mineras objetivo.", assignee: "Ambos", completed: false },
+    { id: "8", phase: 1, week: 1, dayName: "Viernes", title: "Llamadas de Refuerzo & Cierre", description: "Agendamiento de demos para Semana 2.", assignee: "Federico", completed: false },
+    // Fase 2 Sample
+    { id: "9", phase: 2, week: 5, dayName: "Lunes", title: "Constitución de Entidad Escrow", description: "Revisión legal de contratos de custodia.", assignee: "Federico", completed: false },
+    { id: "10", phase: 2, week: 5, dayName: "Lunes", title: "Integración API Bancaria KYB", description: "Conectar validación automática de identidad.", assignee: "Rodrigo", completed: false },
+  ]);
 
-    const { data: tasksData } = await supabase
-      .from('tasks')
-      .select('*')
-      .order('day_number', { ascending: true })
-      .order('step_order', { ascending: true });
-
-    if (goalsData && tasksData) {
-      const updatedGoals = goalsData.map((goal) => {
-        const goalTasks = tasksData.filter((t) => t.goal_id === goal.id);
-        const completed = goalTasks.filter((t) => t.status === 'Completada').length;
-        const progress = goalTasks.length > 0 ? Math.round((completed / goalTasks.length) * 100) : 0;
-        return { ...goal, progress_percentage: progress };
-      });
-
-      setGoals(updatedGoals);
-      setTasks(tasksData as Task[]);
-    }
+  // Alternar Estado de Completado
+  const toggleTask = (id: string) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
   };
 
-  useEffect(() => {
-    fetchData();
+  // Filtrado de Tareas
+  const currentWeekTasks = tasks.filter(t => t.phase === selectedPhase && t.week === selectedWeek);
+  const currentDayTasks = currentWeekTasks.filter(t => t.dayName === selectedDay);
 
-    const tasksSub = supabase.channel('realtime_daily_tasks_v7')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => fetchData())
-      .subscribe();
+  // Cálculo de Progresos Semanales
+  const rodrigoTasks = currentWeekTasks.filter(t => t.assignee === "Rodrigo" || t.assignee === "Ambos");
+  const federicoTasks = currentWeekTasks.filter(t => t.assignee === "Federico" || t.assignee === "Ambos");
 
-    return () => {
-      supabase.removeChannel(tasksSub);
-    };
-  }, []);
+  const rodrigoDone = rodrigoTasks.filter(t => t.completed).length;
+  const federicoDone = federicoTasks.filter(t => t.completed).length;
+  const totalDone = currentWeekTasks.filter(t => t.completed).length;
 
-  const updateStatus = async (taskId: string, newStatus: 'Pendiente' | 'En Progreso' | 'Completada') => {
-    await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
-    fetchData();
-  };
+  const rodrigoPercent = rodrigoTasks.length ? Math.round((rodrigoDone / rodrigoTasks.length) * 100) : 0;
+  const federicoPercent = federicoTasks.length ? Math.round((federicoDone / federicoTasks.length) * 100) : 0;
+  const overallPercent = currentWeekTasks.length ? Math.round((totalDone / currentWeekTasks.length) * 100) : 0;
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t) => t.status === 'Completada').length;
-  const globalVelocity = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-  // Filtrado de subtareas
-  const filteredTasks = tasks.filter((t) => {
-    const matchesGoal = selectedGoalId === 'ALL' || t.goal_id === selectedGoalId;
-    const matchesAssignee = activeAssignee === 'ALL' || t.assignee.includes(activeAssignee);
-    const matchesDay = selectedDayLabel === 'ALL' || t.day_label === selectedDayLabel;
-    return matchesGoal && matchesAssignee && matchesDay;
-  });
-
-  // Lista de semanas y días disponibles
-  const weeks = Array.from(new Set(tasks.map((t) => t.week_label)));
-  const days = Array.from(new Set(tasks.map((t) => t.day_label)));
+  const days: Task["dayName"][] = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 md:p-8 selection:bg-emerald-500 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 font-sans">
       
-      {/* CABECERA EJECUTIVA */}
-      <header className="border-b border-slate-800 pb-6 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* HEADER PRINCIPAL */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-slate-800 pb-6">
         <div>
-          <div className="flex items-center gap-3">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-            </span>
-            <h1 className="text-2xl font-black tracking-wider text-white uppercase font-mono">
-              NEXUS NODE <span className="text-emerald-400">// DAILY SPRINT ROOM</span>
-            </h1>
-          </div>
-          <p className="text-slate-400 text-xs mt-1 font-mono">
-            Planificador Diario de Alta Velocidad (3-4 Subtareas/Día) | Rodrigo (CEO) & Federico (COO)
+          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+            <Calendar className="text-emerald-400 w-8 h-8" />
+            NEXUS NODE — Dashboard Operativo
+          </h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Navegación de Fases, Semanas y Ejecución Diaria de Fundadores.
           </p>
         </div>
-
-        {/* MÉTRICAS DE EJECUCIÓN */}
-        <div className="flex items-center gap-4 bg-slate-900 border border-slate-800 px-4 py-3 rounded-2xl font-mono text-xs shadow-lg">
-          <div>
-            <span className="text-slate-500 block uppercase text-[10px]">Ritmo de Ejecución</span>
-            <span className="text-emerald-400 font-bold text-base">{globalVelocity}% COMPLETADO</span>
-          </div>
-          <div className="h-8 w-px bg-slate-800"></div>
-          <div>
-            <span className="text-slate-500 block uppercase text-[10px]">Subtareas Listas</span>
-            <span className="text-white font-bold text-base">{completedTasks} / {totalTasks} TOTAL</span>
-          </div>
-        </div>
-      </header>
-
-      {/* SECCIÓN DE FASES */}
-      <section className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono flex items-center gap-2">
-            <span>🗺️</span> Fases Estratégicas (Fases 1 a 4):
-          </h2>
-          {selectedGoalId !== 'ALL' && (
-            <button onClick={() => setSelectedGoalId('ALL')} className="text-xs font-mono text-emerald-400 hover:underline">
-              ✕ Ver Todas las Fases
-            </button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {goals.map((goal) => {
-            const isSelected = selectedGoalId === goal.id;
-            return (
-              <div
-                key={goal.id}
-                onClick={() => setSelectedGoalId(goal.id)}
-                className={`cursor-pointer rounded-2xl p-4 transition-all border ${
-                  isSelected
-                    ? 'bg-slate-900 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500'
-                    : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
-                }`}
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 text-emerald-400 font-bold border border-slate-800">
-                    Fase {goal.phase_number}
-                  </span>
-                  <span className="text-xs font-mono font-bold text-emerald-400">{goal.progress_percentage}%</span>
-                </div>
-                <h3 className="font-bold text-sm text-white mb-1 line-clamp-1">{goal.title}</h3>
-                <p className="text-[10px] text-slate-500 font-mono mb-2">{goal.timeframe}</p>
-                <p className="text-[11px] text-slate-400 font-mono mb-3 line-clamp-2">{goal.kpi_target}</p>
-
-                <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-slate-800">
-                  <div className="bg-emerald-400 h-full transition-all duration-500" style={{ width: `${goal.progress_percentage}%` }}></div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* BARRA DE FILTROS POR DÍA Y SOCIO */}
-      <section className="mb-6 space-y-4">
-        {/* NAVEGACIÓN POR DÍAS */}
-        <div className="flex flex-wrap items-center gap-2 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
-          <span className="text-xs font-mono text-slate-400 px-3 font-bold">Filtrar por Día:</span>
-          <button
-            onClick={() => setSelectedDayLabel('ALL')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-mono transition ${
-              selectedDayLabel === 'ALL' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-950 text-slate-400 hover:text-white'
-            }`}
-          >
-            Todos los Días
-          </button>
-          {days.map((day) => (
+        
+        {/* NAVEGACIÓN DE FASES */}
+        <div className="flex gap-2 mt-4 md:mt-0 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
+          {[1, 2, 3, 4].map((phaseNum) => (
             <button
-              key={day}
-              onClick={() => setSelectedDayLabel(day)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-mono transition ${
-                selectedDayLabel === day ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-950 text-slate-400 hover:text-white'
+              key={phaseNum}
+              onClick={() => {
+                setSelectedPhase(phaseNum);
+                setSelectedWeek(phaseNum === 1 ? 1 : phaseNum === 2 ? 5 : phaseNum === 3 ? 9 : 13);
+              }}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                selectedPhase === phaseNum 
+                  ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20" 
+                  : "text-slate-400 hover:text-white hover:bg-slate-800"
               }`}
             >
-              📅 {day}
+              Fase {phaseNum}
             </button>
           ))}
         </div>
+      </div>
 
-        {/* FILTRADO POR RESPONSABLE */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setActiveAssignee('ALL')}
-            className={`px-4 py-1.5 rounded-xl text-xs font-mono transition ${
-              activeAssignee === 'ALL' ? 'bg-slate-800 text-white font-bold' : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            Todos los Fundadores
-          </button>
-          <button
-            onClick={() => setActiveAssignee('Rodrigo')}
-            className={`px-4 py-1.5 rounded-xl text-xs font-mono transition ${
-              activeAssignee === 'Rodrigo' ? 'bg-blue-600 text-white font-bold' : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            Rodrigo (CEO & Tech Lead)
-          </button>
-          <button
-            onClick={() => setActiveAssignee('Federico')}
-            className={`px-4 py-1.5 rounded-xl text-xs font-mono transition ${
-              activeAssignee === 'Federico' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            Federico (COO & Ops)
-          </button>
-          <button
-            onClick={() => setActiveAssignee('Conjunto')}
-            className={`px-4 py-1.5 rounded-xl text-xs font-mono transition ${
-              activeAssignee === 'Conjunto' ? 'bg-purple-600 text-white font-bold' : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            🤝 Trabajo Conjunto
-          </button>
-        </div>
-      </section>
-
-      {/* SPRINT DIARIO ORGANIZADO POR SEMANAS Y DÍAS */}
-      <section className="space-y-10">
-        {weeks.map((week) => {
-          const weekTasks = filteredTasks.filter((t) => t.week_label === week);
-          if (weekTasks.length === 0) return null;
-
-          const weeklyGoalTitle = weekTasks[0]?.weekly_goal || 'Meta Semanal';
-          const weekDays = Array.from(new Set(weekTasks.map((t) => t.day_label)));
-
+      {/* NAVEGADOR DE SEMANAS DE LA FASE */}
+      <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-2">
+        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Semana:</span>
+        {Array.from({ length: 4 }, (_, i) => {
+          const weekNum = (selectedPhase - 1) * 4 + (i + 1);
           return (
-            <div key={week} className="bg-slate-900/30 border border-slate-800 rounded-3xl p-6 shadow-2xl">
-              
-              {/* META SEMANAL BANNER */}
-              <div className="bg-slate-900 border border-emerald-500/30 p-5 rounded-2xl mb-6 flex flex-col md:flex-row justify-between md:items-center gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-mono bg-emerald-500 text-slate-950 font-black px-2.5 py-0.5 rounded uppercase">
-                      {week}
-                    </span>
-                    <span className="text-xs text-slate-400 font-mono">
-                      {weekTasks.filter((t) => t.status === 'Completada').length} de {weekTasks.length} subtareas avanzadas
-                    </span>
-                  </div>
-                  <h3 className="text-base md:text-lg font-bold text-white font-mono">
-                    🎯 {weeklyGoalTitle}
-                  </h3>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-[10px] font-mono text-slate-400 block uppercase">Cumplimiento Semanal</span>
-                  <span className="text-emerald-400 font-mono font-bold text-lg">
-                    {Math.round((weekTasks.filter((t) => t.status === 'Completada').length / weekTasks.length) * 100 || 0)}%
-                  </span>
-                </div>
-              </div>
-
-              {/* BLOQUES DÍA POR DÍA */}
-              <div className="space-y-8">
-                {weekDays.map((dayLabel) => {
-                  const dayTasks = weekTasks.filter((t) => t.day_label === dayLabel);
-                  const dayCompleted = dayTasks.filter((t) => t.status === 'Completada').length;
-
-                  return (
-                    <div key={dayLabel} className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-5">
-                      <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-mono bg-blue-500/20 text-blue-400 font-bold px-3 py-1 rounded-full border border-blue-500/30">
-                            📆 {dayLabel}
-                          </span>
-                          <span className="text-xs text-slate-400 font-mono">
-                            {dayCompleted} / {dayTasks.length} subtareas completadas hoy
-                          </span>
-                        </div>
-
-                        <div className="w-24 bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
-                          <div
-                            className="bg-blue-400 h-full transition-all"
-                            style={{ width: `${Math.round((dayCompleted / dayTasks.length) * 100 || 0)}%` }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* SUBTAREAS DEL DÍA */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {dayTasks.map((task) => (
-                          <DailyTaskCard
-                            key={task.id}
-                            task={task}
-                            onStatusChange={(status) => updateStatus(task.id, status)}
-                            onOpenPrompt={() => setSelectedPrompt(task)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-            </div>
+            <button
+              key={weekNum}
+              onClick={() => setSelectedWeek(weekNum)}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                selectedWeek === weekNum
+                  ? "bg-slate-800 border-emerald-500 text-emerald-400 font-bold"
+                  : "border-slate-800 text-slate-400 hover:border-slate-700"
+              }`}
+            >
+              Semana {weekNum}
+            </button>
           );
         })}
-      </section>
+      </div>
 
-      {/* MODAL DETALLADO CON CRITERIO DE PERFECCIÓN Y PROMPT DE IA */}
-      {selectedPrompt && (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4 pb-3 border-b border-slate-800">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-mono bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">
-                    {selectedPrompt.day_label}
-                  </span>
-                  <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
-                    {selectedPrompt.assignee}
-                  </span>
-                </div>
-                <h3 className="font-bold text-base text-white">{selectedPrompt.title}</h3>
-              </div>
-              <button onClick={() => setSelectedPrompt(null)} className="text-slate-400 hover:text-white font-mono">✕</button>
-            </div>
+      {/* BARRAS DE PROGRESO DE LOS FUNDADORES */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        
+        {/* Progreso Rodrigo */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 relative overflow-hidden">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-semibold flex items-center gap-2 text-blue-400">
+              <User className="w-4 h-4" /> Rodrigo (CEO & Tech)
+            </span>
+            <span className="text-lg font-bold text-white">{rodrigoPercent}%</span>
+          </div>
+          <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div 
+              className="bg-blue-500 h-2.5 rounded-full transition-all duration-500" 
+              style={{ width: `${rodrigoPercent}%` }}
+            ></div>
+          </div>
+          <p className="text-xs text-slate-500 mt-2">{rodrigoDone} de {rodrigoTasks.length} tareas semanales listadas</p>
+        </div>
 
-            {/* CRITERIO DE PERFECCIÓN UNICORNIO */}
-            <div className="mb-4 bg-purple-950/30 border border-purple-500/30 p-3.5 rounded-xl">
-              <span className="text-[10px] font-mono uppercase text-purple-300 block font-bold mb-1">
-                ⭐ Criterio de Perfección (Objetivo Ideal Unicornio):
-              </span>
-              <p className="text-xs text-purple-100 leading-relaxed font-mono">{selectedPrompt.ideal_perfection_goal}</p>
-            </div>
+        {/* Progreso Federico */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 relative overflow-hidden">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-semibold flex items-center gap-2 text-purple-400">
+              <User className="w-4 h-4" /> Federico (COO)
+            </span>
+            <span className="text-lg font-bold text-white">{federicoPercent}%</span>
+          </div>
+          <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div 
+              className="bg-purple-500 h-2.5 rounded-full transition-all duration-500" 
+              style={{ width: `${federicoPercent}%` }}
+            ></div>
+          </div>
+          <p className="text-xs text-slate-500 mt-2">{federicoDone} de {federicoTasks.length} tareas semanales listadas</p>
+        </div>
 
-            {/* PASO A PASO */}
-            <div className="mb-4 bg-slate-950 border border-slate-800 p-3.5 rounded-xl">
-              <span className="text-[10px] font-mono uppercase text-blue-400 block font-bold mb-1">📋 Paso a Paso de Ejecución:</span>
-              <p className="text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">{selectedPrompt.step_by_step}</p>
-            </div>
+        {/* Progreso General Semanal */}
+        <div className="bg-slate-900 border border-emerald-900/50 bg-gradient-to-br from-slate-900 to-emerald-950/20 rounded-xl p-5">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-semibold flex items-center gap-2 text-emerald-400">
+              <BarChart3 className="w-4 h-4" /> Progreso General Semanal
+            </span>
+            <span className="text-lg font-bold text-emerald-400">{overallPercent}%</span>
+          </div>
+          <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div 
+              className="bg-emerald-500 h-2.5 rounded-full transition-all duration-500 shadow-sm shadow-emerald-500" 
+              style={{ width: `${overallPercent}%` }}
+            ></div>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">{totalDone} de {currentWeekTasks.length} tareas totales completadas</p>
+        </div>
 
-            {/* PROPÓSITO ESTRATÉGICO */}
-            <div className="mb-4 bg-emerald-950/30 border border-emerald-500/30 p-3.5 rounded-xl">
-              <span className="text-[10px] font-mono uppercase text-emerald-400 block font-bold mb-1">🚀 Propósito Estratégico & Impacto Real:</span>
-              <p className="text-xs text-slate-300 leading-relaxed">{selectedPrompt.impact_purpose}</p>
-            </div>
+      </div>
 
-            <p className="text-xs text-slate-400 mb-2">
-              Copia este prompt e introdúcelo en <strong>Cursor (`Cmd + K`)</strong> o <strong>Claude 3.5 Sonnet</strong>:
-            </p>
-
-            {/* PROMPT DE IA */}
-            <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl font-mono text-xs text-emerald-300 mb-5 whitespace-pre-wrap leading-relaxed">
-              {selectedPrompt.ai_rescue_prompt}
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setSelectedPrompt(null)} className="px-4 py-2 rounded-xl text-xs font-mono text-slate-400">
-                Cerrar
-              </button>
+      {/* PESTAÑAS DE DÍAS DE LA SEMANA (CALENDARIO) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8">
+        <div className="flex border-b border-slate-800 pb-4 mb-6 overflow-x-auto gap-2">
+          {days.map((day) => {
+            const dayTaskCount = currentWeekTasks.filter(t => t.dayName === day).length;
+            return (
               <button
-                onClick={() => copyToClipboard(selectedPrompt.ai_rescue_prompt)}
-                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl transition flex items-center gap-2"
+                key={day}
+                onClick={() => setSelectedDay(day)}
+                className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+                  selectedDay === day
+                    ? "bg-slate-800 text-white font-bold border border-slate-700 shadow-md"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                }`}
               >
-                <span>⚡</span>
-                <span>{copied ? '¡Copiado!' : 'Copiar Prompt a Portapapeles'}</span>
+                <span>{day}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${selectedDay === day ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'}`}>
+                  {dayTaskCount}
+                </span>
               </button>
+            );
+          })}
+        </div>
+
+        {/* LISTA DE TAREAS DEL DÍA SELECCIONADO */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+            Tareas de {selectedDay} — Fase {selectedPhase} (Semana {selectedWeek})
+          </h2>
+
+          {currentDayTasks.length === 0 ? (
+            <div className="text-center py-12 text-slate-500 border border-dashed border-slate-800 rounded-xl">
+              No hay tareas agendadas para este día en la Semana {selectedWeek}.
             </div>
+          ) : (
+            currentDayTasks.map((task) => (
+              <div 
+                key={task.id}
+                onClick={() => toggleTask(task.id)}
+                className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start justify-between gap-4 ${
+                  task.completed 
+                    ? "bg-slate-950/50 border-slate-800/80 opacity-75" 
+                    : "bg-slate-950 border-slate-800 hover:border-slate-700"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <button className="mt-1 text-slate-400 hover:text-emerald-400">
+                    {task.completed ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-slate-600" />
+                    )}
+                  </button>
+                  <div>
+                    <h3 className={`font-semibold text-sm ${task.completed ? "line-through text-slate-500" : "text-white"}`}>
+                      {task.title}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">{task.description}</p>
+                  </div>
+                </div>
+
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-md border whitespace-nowrap ${
+                  task.assignee === "Rodrigo" ? "bg-blue-950/40 border-blue-800/50 text-blue-400" :
+                  task.assignee === "Federico" ? "bg-purple-950/40 border-purple-800/50 text-purple-400" :
+                  "bg-emerald-950/40 border-emerald-800/50 text-emerald-400"
+                }`}>
+                  {task.assignee}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* REPORTE EJECUTIVO DE CIERRE DE SEMANA */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+        <div className="flex items-center gap-3 mb-6">
+          <Award className="w-6 h-6 text-amber-400" />
+          <h2 className="text-xl font-bold text-white">Reporte Ejecutivo de Cierre de Semana {selectedWeek}</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" /> ¿Dónde estamos parados?
+            </h4>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Fase {selectedPhase} en ejecución fluida. Base técnica consolidada en Supabase y motor outbound activo enviando la propuesta de custodia digital a mineras calificadas.
+            </p>
+          </div>
+
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-blue-400" /> ¿Qué logramos esta semana?
+            </h4>
+            <ul className="text-sm text-slate-300 list-disc list-inside space-y-1">
+              <li>100% de la infraestructura SQL y seguridad RLS desplegada.</li>
+              <li>50 Leads de mineras de Cobre/Oro verificados en base de datos.</li>
+              <li>Integración de envíos por Resend API con autenticación DKIM/SPF.</li>
+            </ul>
+          </div>
+
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <ArrowRight className="w-4 h-4 text-purple-400" /> ¿Qué sigue la próxima semana?
+            </h4>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Ejecutar las reuniones comerciales agendadas, presentar la Hoja de Términos (Term Sheet) de 1 página y cerrar el primer contrato piloto para el flujo de custodia.
+            </p>
+          </div>
+
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <ChevronRight className="w-4 h-4 text-amber-400" /> Visión Estratégica & Roadmap
+            </h4>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Mantener el ritmo acelerado para alcanzar $100k+ USD GMV en la Fase 1 y escalar a $1M USD GMV en la Fase 3 con procesos automatizados.
+            </p>
           </div>
         </div>
-      )}
-
-    </div>
-  );
-}
-
-// TARJETA DE SUBTAREA DIARIA CON CRITERIO DE PERFECCIÓN RESUMIDO
-function DailyTaskCard({
-  task,
-  onStatusChange,
-  onOpenPrompt,
-}: {
-  task: Task;
-  onStatusChange: (status: 'Pendiente' | 'En Progreso' | 'Completada') => void;
-  onOpenPrompt: () => void;
-}) {
-  const isJoint = task.assignee.includes('Conjunto');
-
-  return (
-    <div className={`bg-slate-900 border rounded-xl p-4 flex flex-col justify-between transition-all ${
-      task.status === 'Completada'
-        ? 'border-emerald-500/30 bg-emerald-950/10'
-        : isJoint
-        ? 'border-purple-500/40 bg-purple-950/10'
-        : 'border-slate-800 hover:border-slate-700'
-    }`}>
-      <div>
-        <div className="flex justify-between items-center mb-2">
-          <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
-            isJoint
-              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-              : task.assignee.includes('Rodrigo')
-              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-          }`}>
-            {task.assignee}
-          </span>
-          <span className="text-[10px] font-mono text-slate-500">Orden #{task.step_order}</span>
-        </div>
-
-        <h4 className={`font-semibold text-sm mb-2 ${task.status === 'Completada' ? 'line-through text-slate-400' : 'text-slate-100'}`}>
-          {task.title}
-        </h4>
-
-        <p className="text-xs text-slate-400 mb-3 leading-relaxed">{task.description}</p>
-
-        {/* CRITERIO DE PERFECCIÓN RESUMIDO */}
-        <div className="bg-purple-950/20 p-2.5 rounded-lg border border-purple-500/20 mb-3">
-          <span className="text-[9px] font-mono uppercase text-purple-300 font-bold block mb-0.5">⭐ Objetivo de Perfección:</span>
-          <p className="text-[11px] text-purple-100 leading-tight font-mono">{task.ideal_perfection_goal}</p>
-        </div>
       </div>
 
-      {/* CONTROLES Y PROMPT */}
-      <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1 font-mono text-[10px]">
-          <button
-            onClick={() => onStatusChange('Pendiente')}
-            className={`px-2 py-1 rounded transition ${
-              task.status === 'Pendiente' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 font-bold' : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            ⏳ Pendiente
-          </button>
-          <button
-            onClick={() => onStatusChange('En Progreso')}
-            className={`px-2 py-1 rounded transition ${
-              task.status === 'En Progreso' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40 font-bold' : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            🚀 En Progreso
-          </button>
-          <button
-            onClick={() => onStatusChange('Completada')}
-            className={`px-2 py-1 rounded transition ${
-              task.status === 'Completada' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold' : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            ✓ Lista
-          </button>
-        </div>
-
-        {task.ai_rescue_prompt && (
-          <button onClick={onOpenPrompt} className="text-[11px] text-emerald-400 hover:underline font-mono flex items-center gap-1 font-bold">
-            <span>⚡ Prompt IA</span>
-          </button>
-        )}
-      </div>
     </div>
   );
 }
