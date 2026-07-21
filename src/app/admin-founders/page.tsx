@@ -39,7 +39,6 @@ export default function FoundersDashboard() {
     const { data: tasksData } = await supabase.from('tasks').select('*');
 
     if (goalsData && tasksData) {
-      // Recalcular el progreso dinámico de cada meta según el número de tareas completadas
       const updatedGoals = goalsData.map((goal) => {
         const goalTasks = tasksData.filter((t) => t.goal_id === goal.id);
         const completed = goalTasks.filter((t) => t.status === 'Completada').length;
@@ -55,7 +54,7 @@ export default function FoundersDashboard() {
   useEffect(() => {
     fetchData();
 
-    const tasksSub = supabase.channel('realtime_tasks_v3')
+    const tasksSub = supabase.channel('realtime_tasks_v4')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => fetchData())
       .subscribe();
 
@@ -64,7 +63,6 @@ export default function FoundersDashboard() {
     };
   }, []);
 
-  // Actualizador directo de estado desde botones
   const updateStatus = async (taskId: string, newStatus: 'Pendiente' | 'En Progreso' | 'Completada') => {
     await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId);
     fetchData();
@@ -76,12 +74,10 @@ export default function FoundersDashboard() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Cálculo de Métricas Globales
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.status === 'Completada').length;
   const globalVelocity = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  // Filtrado de Tareas
   const filteredTasks = tasks.filter((t) => {
     const matchesGoal = selectedGoalId === 'ALL' || t.goal_id === selectedGoalId;
     const matchesAssignee = activeAssignee === 'ALL' || t.assignee === activeAssignee;
@@ -104,7 +100,7 @@ export default function FoundersDashboard() {
             </h1>
           </div>
           <p className="text-slate-400 text-xs mt-1 font-mono">
-            Rodrigo (CEO & Tech/Product) & Federico (COO & BD/Ops) | Avance Hacia Valuación Unicornio
+            Rodrigo (CEO // Strategy, Vision & Product) & Federico (COO // Operations & BD)
           </p>
         </div>
 
@@ -116,13 +112,13 @@ export default function FoundersDashboard() {
           </div>
           <div className="h-8 w-px bg-slate-800"></div>
           <div>
-            <span className="text-slate-500 block uppercase text-[10px]">Tareas Listas</span>
+            <span className="text-slate-500 block uppercase text-[10px]">Tareas Completadas</span>
             <span className="text-white font-bold text-base">{completedTasks} / {totalTasks} DONE</span>
           </div>
         </div>
       </header>
 
-      {/* SECCIÓN DE FASES Y METAS CLICABLES */}
+      {/* SECCIÓN DE FASES Y METAS */}
       <section className="mb-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest font-mono flex items-center gap-2">
@@ -162,7 +158,6 @@ export default function FoundersDashboard() {
                   {goal.kpi_target}
                 </p>
 
-                {/* BARRA DE PROGRESO */}
                 <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-slate-800">
                   <div
                     className="bg-emerald-400 h-full transition-all duration-500"
@@ -175,7 +170,7 @@ export default function FoundersDashboard() {
         </div>
       </section>
 
-      {/* CONTROLES Y FILTROS DE FUNDADORES */}
+      {/* CONTROLES Y FILTROS */}
       <section className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/40 p-3 rounded-2xl border border-slate-800/80">
         <div className="flex gap-2">
           <button
@@ -192,7 +187,7 @@ export default function FoundersDashboard() {
               activeAssignee === 'Rodrigo' ? 'bg-blue-600 text-white font-bold' : 'bg-slate-900 text-slate-400 hover:text-white'
             }`}
           >
-            Rodrigo (CEO / Tech & Strategy)
+            Rodrigo (CEO // Strategy & Product)
           </button>
           <button
             onClick={() => setActiveAssignee('Federico')}
@@ -200,19 +195,19 @@ export default function FoundersDashboard() {
               activeAssignee === 'Federico' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-900 text-slate-400 hover:text-white'
             }`}
           >
-            Federico (COO / BD & Operations)
+            Federico (COO // Operations & Growth)
           </button>
         </div>
 
         <div className="text-xs font-mono text-slate-400 px-3">
-          Mostrando <strong className="text-white">{filteredTasks.length}</strong> tareas de ejecución
+          Mostrando <strong className="text-white">{filteredTasks.length}</strong> tareas activas
         </div>
       </section>
 
-      {/* REJILLA PRINCIPAL DE TAREAS INTERACTIVAS */}
+      {/* REJILLA PRINCIPAL DE TAREAS */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* COLUMNA RODRIGO */}
+        {/* COLUMNA RODRIGO (CEO) */}
         {(activeAssignee === 'ALL' || activeAssignee === 'Rodrigo') && (
           <div className="bg-slate-900/30 border border-slate-800 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
@@ -222,7 +217,7 @@ export default function FoundersDashboard() {
                 </div>
                 <div>
                   <h3 className="font-bold text-white text-sm">Rodrigo</h3>
-                  <p className="text-[11px] text-slate-400 font-mono">Product, Engineering & Vision</p>
+                  <p className="text-[11px] text-slate-400 font-mono">Chief Executive Officer // Strategy, Product & Crecimiento</p>
                 </div>
               </div>
               <span className="text-xs font-mono bg-blue-500/10 text-blue-400 px-2.5 py-1 rounded-full border border-blue-500/20">
@@ -245,7 +240,7 @@ export default function FoundersDashboard() {
           </div>
         )}
 
-        {/* COLUMNA FEDERICO */}
+        {/* COLUMNA FEDERICO (COO) */}
         {(activeAssignee === 'ALL' || activeAssignee === 'Federico') && (
           <div className="bg-slate-900/30 border border-slate-800 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
@@ -255,7 +250,7 @@ export default function FoundersDashboard() {
                 </div>
                 <div>
                   <h3 className="font-bold text-white text-sm">Federico</h3>
-                  <p className="text-[11px] text-slate-400 font-mono">Operations, BD & Legal Execution</p>
+                  <p className="text-[11px] text-slate-400 font-mono">Chief Operating Officer // Field Operations & Sales</p>
                 </div>
               </div>
               <span className="text-xs font-mono bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">
@@ -280,7 +275,7 @@ export default function FoundersDashboard() {
 
       </section>
 
-      {/* MODAL DE AI RESCUE PROMPT */}
+      {/* MODAL AI PROMPT */}
       {selectedPrompt && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-2xl w-full shadow-2xl">
@@ -295,7 +290,7 @@ export default function FoundersDashboard() {
             </div>
 
             <p className="text-xs text-slate-400 mb-3">
-              Copia este prompt y pégalo en <strong>Cursor (Cmd + K)</strong> o <strong>Claude 3.5 Sonnet</strong> para resolver esta tarea de inmediato:
+              Copia este prompt y pégalo en <strong>Cursor (Cmd + K)</strong> o <strong>Claude 3.5 Sonnet</strong> para resolver esta tarea ejecutiva de inmediato:
             </p>
 
             <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl font-mono text-xs text-emerald-300 mb-5 whitespace-pre-wrap max-h-60 overflow-y-auto leading-relaxed">
@@ -322,7 +317,6 @@ export default function FoundersDashboard() {
   );
 }
 
-// COMPONENTE TARJETA INTERACTIVA DE TAREA
 function TaskInteractiveCard({
   task,
   onStatusChange,
@@ -344,10 +338,7 @@ function TaskInteractiveCard({
 
       <p className="text-xs text-slate-400 mb-4 leading-relaxed">{task.description}</p>
 
-      {/* BOTONES INTERACTIVOS DE CAMBIO DE ESTADO */}
       <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-900">
-        
-        {/* Selector Botones Directos */}
         <div className="flex items-center gap-1 font-mono text-[10px]">
           <button
             onClick={() => onStatusChange('Pendiente')}
@@ -375,7 +366,6 @@ function TaskInteractiveCard({
           </button>
         </div>
 
-        {/* Botón Prompt IA */}
         {task.ai_rescue_prompt && (
           <button
             onClick={onOpenPrompt}
