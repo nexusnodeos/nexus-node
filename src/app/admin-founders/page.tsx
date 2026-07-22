@@ -19,194 +19,33 @@ interface Task {
   completed: boolean;
 }
 
-// DATA MAESTRA DE TAREAS (4 SEMANAS)
-const INITIAL_TASKS: Task[] = [
-  // --- SEMANA 1 ---
-  {
-    id: 's1-r-1.1',
-    week: 1,
-    assignee: 'rodrigo',
-    task_code: '1.1',
-    title: 'Agente SDR Inbound Anti-Fraude',
-    description: 'Definir reglas para analizar la documentación subida por los vendedores.',
-    prompt: `Actúa como Senior Legal & Compliance Prompt Engineer. Diseña el prompt del sistema y el flujo lógico para un 'Agente SDR Inbound Anti-Fraude' en Nexus. El agente debe recibir un JSON con metadatos de documentos cargados (título de concesión minera, análisis de laboratorio, identificaciones). Debe evaluar inconsistencias, validar formatos y devolver un score de validez (0-100). Si es <80%, genera una razón de rechazo detallada; si es >=80%, aprueba el lote y desencadena el contrato de exclusividad de 72 horas.`,
-    completed: false
-  },
-  {
-    id: 's1-r-1.2',
-    week: 1,
-    assignee: 'rodrigo',
-    task_code: '1.2',
-    title: 'Plantillas de Contrato',
-    description: 'Redactar los borradores legales del contrato de exclusividad (72 hrs) y NCNDA.',
-    prompt: `Actúa como Abogado Corporativo especialista en Commodities y Minería. Redacta dos plantillas de contrato redactadas de forma profesional pero listas con variables Markdown/HTML (ej: {{vendedor_nombre}}, {{lote_id}}, {{volumen}}, {{fecha}}): 1) Contrato de Exclusividad de Venta por 72 horas para Nexus. 2) Acuerdo de Confidencialidad y No Circunvención (NCNDA). Incluye cláusulas de penalización por doble venta durante la ventana de 72 horas.`,
-    completed: false
-  },
-  {
-    id: 's1-r-1.3',
-    week: 1,
-    assignee: 'rodrigo',
-    task_code: '1.3',
-    title: 'Criterios de Validación de Vendedores',
-    description: 'Establecer checklist de ponderación de riesgo para el agente SDR.',
-    prompt: `Actúa como Product Designer UX/UI para un B2B Marketplace de Commodities. Genera el esquema de campos en formato JSON para el formulario de carga de lotes por parte de mineras. Incluye: Tipo de mineral, ley/pureza (%), volumen (toneladas), ubicación exacta, precio mínimo de venta (USD/ton), disponibilidad de entrega y checklist de documentos adjuntos obligatorios.`,
-    completed: false
-  },
-  {
-    id: 's1-f-1.1',
-    week: 1,
-    assignee: 'federico',
-    task_code: '1.1',
-    title: 'Schema Relacional de Supabase',
-    description: 'Crear tablas en Supabase (users, lots, documents, matches).',
-    prompt: `Actúa como Senior Database Architect especialista en Supabase / PostgreSQL. Genera el script SQL DDL para crear las tablas: 'users' (roles: buyer, seller), 'lots' (detalles del mineral, precio min, status), 'documents' (URL, status_verificacion, score_fraude), 'matches' (buyer_id, lot_id, score, status), y 'agent_activity_logs' (agent_name, step, payload, timestamp). Incluye Row Level Security (RLS) e índices de desempeño.`,
-    completed: false
-  },
-  {
-    id: 's1-f-1.2',
-    week: 1,
-    assignee: 'federico',
-    task_code: '1.2',
-    title: 'Arquitectura de Cola Asíncrona',
-    description: 'Configurar backend para procesamiento asíncrono de documentos.',
-    prompt: `Actúa como Principal Backend Engineer especialista en sistemas distribuidos y concurrencia. Diseña una arquitectura de colas de mensajes asíncronas en Node.js/TypeScript usando Redis/BullMQ o Supabase Background Workers. Crea el código para un worker que procese la verificación de documentos de múltiples lotes en paralelo, evitando bloqueos en la API cuando entren más de 5 peticiones simultáneas.`,
-    completed: false
-  },
-  {
-    id: 's1-f-1.3',
-    week: 1,
-    assignee: 'federico',
-    task_code: '1.3',
-    title: 'Conexión de Storage Supabase',
-    description: 'Configurar buckets de almacenamiento seguro para PDFs de los lotes.',
-    prompt: `Actúa como Cloud Security & Supabase Expert. Proporciona el script SQL/CLI de Supabase para crear un bucket de almacenamiento privado llamado 'kyc-documents'. Configura las políticas de seguridad (Storage RLS) para que solo el propietario y las Edge Functions de los Agentes puedan leer/escribir archivos.`,
-    completed: false
-  },
-
-  // --- SEMANA 2 ---
-  {
-    id: 's2-r-2.1',
-    week: 2,
-    assignee: 'rodrigo',
-    task_code: '2.1',
-    title: 'Agente Legal & Compliance Firma',
-    description: 'Definir reglas para validar firmas en PDFs de contratos.',
-    prompt: `Actúa como Legaltech Specialist. Diseña el prompt para el Agente Legal & Compliance que audita un contrato PDF firmado. Debe verificar que contenga las firmas de ambas partes, fechas válidas y que las cláusulas no hayan sido alteradas.`,
-    completed: false
-  },
-  {
-    id: 's2-r-2.2',
-    week: 2,
-    assignee: 'rodrigo',
-    task_code: '2.2',
-    title: 'Diseño UX Firma Digital',
-    description: 'Definir flujo donde comprador y vendedor plasman su firma digital.',
-    prompt: `Actúa como UX Designer. Diseña el flujo modal para firma de documentos en la web. Incluye el visor PDF, checkbox de aceptación de términos legales y un canvas para firma digitalizada o botón de "Firma Electrónica Un Clic".`,
-    completed: false
-  },
-  {
-    id: 's2-f-2.1',
-    week: 2,
-    assignee: 'federico',
-    task_code: '2.1',
-    title: 'Componente Canvas / Firma Digital',
-    description: 'Crear componente React para capturar firma digitalizada.',
-    prompt: `Actúa como Frontend Developer. Crea un componente en React Signature Modal usando react-signature-canvas. Al guardar, debe exportar la imagen en base64 y enviarla a la Edge Function de firma de contratos.`,
-    completed: false
-  },
-  {
-    id: 's2-f-2.2',
-    week: 2,
-    assignee: 'federico',
-    task_code: '2.2',
-    title: 'Estampado de Firma en PDF',
-    description: 'Backend para incrustar la imagen PNG de la firma en el PDF.',
-    prompt: `Actúa como Node.js Engineer. Escribe una función usando 'pdf-lib' que abra el contrato PDF almacenado, inserte la imagen PNG de la firma en las coordenadas X,Y de la última página y reemplace el archivo por la versión firmada.`,
-    completed: false
-  },
-
-  // --- SEMANA 3 ---
-  {
-    id: 's3-r-3.1',
-    week: 3,
-    assignee: 'rodrigo',
-    task_code: '3.1',
-    title: 'Ejecución Simulación #1 (Flujo Limpio)',
-    description: 'Iniciar la primera prueba E2E completa con datos de Cobre.',
-    prompt: `Actúa como QA Test Director. Genera la hoja de ruta en tiempo real para ejecutar la Simulación #1. Registra tiempos de entrega de emails, efectividad de la extracción de datos y rendimiento de la interfaz.`,
-    completed: false
-  },
-  {
-    id: 's3-f-3.1',
-    week: 3,
-    assignee: 'federico',
-    task_code: '3.1',
-    title: 'Monitoreo de Logs en Vivo S#1',
-    description: 'Monitorear terminal y Supabase durante la prueba E2E.',
-    prompt: `Actúa como DevOps Engineer. Crea un script de monitoreo en tiempo real que haga polling a la tabla 'agent_activity_logs' e imprima en consola de colores los eventos que contengan el estado 'ERROR' o 'WARN'.`,
-    completed: false
-  },
-
-  // --- SEMANA 4 ---
-  {
-    id: 's4-r-4.1',
-    week: 4,
-    assignee: 'rodrigo',
-    task_code: '4.1',
-    title: 'Configuración Simulación Final Autónoma',
-    description: 'Prueba definitiva de 3 lotes sin intervención manual.',
-    prompt: `Actúa como Chief Master Tester. Prepara la guía de ejecución para la Simulación Final de Autonomía 100%. Define los roles de prueba, los datos de los lotes y los criterios de aceptación donde el sistema debe pasar de la prospección al cierre sin intervención humana.`,
-    completed: false
-  },
-  {
-    id: 's4-f-4.1',
-    week: 4,
-    assignee: 'federico',
-    task_code: '4.1',
-    title: 'Despliegue Producción Final Vercel',
-    description: 'Asegurar la compilación final y variables de entorno de producción.',
-    prompt: `Actúa como Lead DevOps. Verifica la configuración de despliegue en Vercel. Habilita compresión de assets, almacenamiento en caché de bordes (Edge Caching) y optimización de variables de producción en Supabase.`,
-    completed: false
-  }
-];
-
 export default function FoundersDashboard() {
   const [activeWeek, setActiveWeek] = useState<number>(1);
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  // Cargar tareas desde Supabase al iniciar
+  // Cargar las 112 tareas directamente desde Supabase
   const fetchTasks = async () => {
     setIsSyncing(true);
     try {
-      const { data, error } = await supabase.from('founder_tasks').select('*');
+      const { data, error } = await supabase
+        .from('founder_tasks')
+        .select('*');
+
       if (error) throw error;
 
       if (data && data.length > 0) {
-        setTasks((prev) =>
-          prev.map((t) => {
-            const remote = data.find((d: any) => d.id === t.id);
-            return remote ? { ...t, completed: remote.completed } : t;
-          })
-        );
-      } else {
-        // Si la tabla está vacía, la inicializamos
-        await supabase.from('founder_tasks').upsert(
-          INITIAL_TASKS.map((t) => ({
-            id: t.id,
-            week: t.week,
-            assignee: t.assignee,
-            task_code: t.task_code,
-            title: t.title,
-            description: t.description,
-            prompt: t.prompt,
-            completed: t.completed,
-          }))
-        );
+        // Ordenar tareas por el código (1.1, 1.2, ..., 1.14)
+        const sortedTasks = (data as Task[]).sort((a, b) => {
+          const numA = parseFloat(a.task_code);
+          const numB = parseFloat(b.task_code);
+          return numA - numB;
+        });
+        setTasks(sortedTasks);
       }
     } catch (e) {
-      console.warn('Operando en modo local (sin conexión DB inmediata)');
+      console.error('Error cargando tareas desde Supabase:', e);
     } finally {
       setIsSyncing(false);
     }
@@ -215,7 +54,7 @@ export default function FoundersDashboard() {
   useEffect(() => {
     fetchTasks();
 
-    // Listener Realtime
+    // Listener de Supabase Realtime
     const channel = supabase
       .channel('realtime_founder_tasks')
       .on(
@@ -259,11 +98,11 @@ export default function FoundersDashboard() {
   const currentWeekTasks = tasks.filter((t) => t.week === activeWeek);
   const totalTasks = tasks.length;
   const totalCompleted = tasks.filter((t) => t.completed).length;
-  const totalProgress = Math.round((totalCompleted / totalTasks) * 100) || 0;
+  const totalProgress = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
 
   const weekTasks = currentWeekTasks.length;
   const weekCompleted = currentWeekTasks.filter((t) => t.completed).length;
-  const weekProgress = Math.round((weekCompleted / weekTasks) * 100) || 0;
+  const weekProgress = weekTasks > 0 ? Math.round((weekCompleted / weekTasks) * 100) : 0;
 
   const rodrigoWeekTasks = currentWeekTasks.filter((t) => t.assignee === 'rodrigo');
   const federicoWeekTasks = currentWeekTasks.filter((t) => t.assignee === 'federico');
@@ -343,7 +182,7 @@ export default function FoundersDashboard() {
         <div className="space-y-6">
           <div className="flex justify-between items-center border-b border-slate-800 pb-3">
             <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
-              <span>👤</span> Tus Tareas (Estrategia y Prompts)
+              <span>👤</span> Rodrigo (CEO)
             </h2>
             <span className="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-full font-mono">
               {rodrigoWeekTasks.filter((t) => t.completed).length} / {rodrigoWeekTasks.length}
