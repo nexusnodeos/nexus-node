@@ -25,7 +25,7 @@ export default function FoundersDashboard() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  // Cargar las 112 tareas directamente desde Supabase
+  // Cargar las tareas directamente desde Supabase
   const fetchTasks = async () => {
     setIsSyncing(true);
     try {
@@ -36,7 +36,6 @@ export default function FoundersDashboard() {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        // Ordenar tareas por el código (1.1, 1.2, ..., 1.14)
         const sortedTasks = (data as Task[]).sort((a, b) => {
           const numA = parseFloat(a.task_code);
           const numB = parseFloat(b.task_code);
@@ -44,8 +43,8 @@ export default function FoundersDashboard() {
         });
         setTasks(sortedTasks);
       }
-    } catch (e) {
-      console.error('Error cargando tareas desde Supabase:', e);
+    } catch (e: any) {
+      console.error('Error cargando tareas desde Supabase:', e.message);
     } finally {
       setIsSyncing(false);
     }
@@ -54,9 +53,9 @@ export default function FoundersDashboard() {
   useEffect(() => {
     fetchTasks();
 
-    // Listener de Supabase Realtime
+    // Listener Realtime en vivo
     const channel = supabase
-      .channel('realtime_founder_tasks')
+      .channel('realtime_founder_tasks_channel')
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'founder_tasks' },
@@ -75,16 +74,32 @@ export default function FoundersDashboard() {
   }, []);
 
   const toggleTask = async (id: string) => {
-    const updatedTasks = tasks.map((t) =>
-      t.id === id ? { ...t, completed: !t.completed } : t
-    );
-    setTasks(updatedTasks);
+    const target = tasks.find((t) => t.id === id);
+    if (!target) return;
 
-    const target = updatedTasks.find((t) => t.id === id);
-    if (target) {
-      await supabase
-        .from('founder_tasks')
-        .upsert({ id: target.id, completed: target.completed, updated_at: new Date().toISOString() });
+    const newCompletedState = !target.completed;
+
+    // 1. Actualización optimista en la pantalla del usuario actual
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: newCompletedState } : t))
+    );
+
+    // 2. Guardado real e incondicional en la base de datos de Supabase
+    const { error } = await supabase
+      .from('founder_tasks')
+      .update({
+        completed: newCompletedState,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error al guardar en Supabase:', error.message);
+      // Revertir cambio local si falla la base de datos
+      setTasks((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, completed: target.completed } : t))
+      );
+      alert(`No se pudo guardar en Supabase: ${error.message}`);
     }
   };
 
@@ -283,4 +298,3 @@ function TaskCard({
     </div>
   );
 }
-
