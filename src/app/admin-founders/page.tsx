@@ -8,6 +8,12 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// Credenciales fijas compartidas por Rodrigo y Federico para entrar al dashboard interno.
+// Necesario porque las tablas founder_tasks ahora exigen RLS "TO authenticated" (antes estaban
+// completamente abiertas a cualquiera con la anon key).
+const FOUNDER_EMAIL = 'fundadores@nexusnode.internal';
+const FOUNDER_PASSWORD = 'NexusFundadores2026!';
+
 interface Task {
   id: string;
   week: number;
@@ -20,6 +26,10 @@ interface Task {
 }
 
 export default function FoundersDashboard() {
+  const [autenticado, setAutenticado] = useState<boolean>(false);
+  const [autenticando, setAutenticando] = useState<boolean>(false);
+  const [checandoSesion, setCheckandoSesion] = useState<boolean>(true);
+
   const [activeWeek, setActiveWeek] = useState<number>(1);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -50,7 +60,44 @@ export default function FoundersDashboard() {
     }
   };
 
+  // Verificar si ya hay una sesión de fundador activa (evita pedir login en cada visita)
   useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setAutenticado(!!data.session);
+      setCheckandoSesion(false);
+    });
+  }, []);
+
+  const entrarComoFundador = async () => {
+    setAutenticando(true);
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: FOUNDER_EMAIL,
+        password: FOUNDER_PASSWORD,
+      });
+
+      if (signInError) {
+        // Primera vez: la cuenta de fundadores todavía no existe, se crea.
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: FOUNDER_EMAIL,
+          password: FOUNDER_PASSWORD,
+        });
+        if (signUpError) {
+          alert('Error de autenticación de fundadores: ' + signUpError.message);
+          setAutenticando(false);
+          return;
+        }
+      }
+
+      setAutenticado(true);
+    } finally {
+      setAutenticando(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!autenticado) return;
+
     fetchTasks();
 
     // Listener Realtime en vivo
@@ -71,7 +118,7 @@ export default function FoundersDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [autenticado]);
 
   const toggleTask = async (id: string) => {
     const target = tasks.find((t) => t.id === id);
@@ -122,6 +169,37 @@ export default function FoundersDashboard() {
   const rodrigoWeekTasks = currentWeekTasks.filter((t) => t.assignee === 'rodrigo');
   const federicoWeekTasks = currentWeekTasks.filter((t) => t.assignee === 'federico');
 
+  if (checandoSesion) {
+    return (
+      <div className="min-h-screen bg-[#0B0F17] flex items-center justify-center text-slate-400 text-sm">
+        Verificando sesión...
+      </div>
+    );
+  }
+
+  if (!autenticado) {
+    return (
+      <div className="min-h-screen bg-[#0B0F17] flex items-center justify-center p-6">
+        <div className="bg-[#131926] border border-slate-800 rounded-2xl p-8 max-w-sm w-full text-center">
+          <h1 className="text-xl font-extrabold text-white mb-2">
+            <span className="text-blue-500">Nexus:</span> Dashboard de Fundadores
+          </h1>
+          <p className="text-xs text-slate-400 mb-6">
+            Acceso restringido a Rodrigo y Federico. Este panel maneja el plan de 30 días y ahora
+            requiere sesión de fundador (RLS activo en founder_tasks).
+          </p>
+          <button
+            onClick={entrarComoFundador}
+            disabled={autenticando}
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold py-2.5 rounded-lg transition disabled:opacity-50"
+          >
+            {autenticando ? 'Entrando...' : 'Entrar como Fundador'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0B0F17] text-slate-100 p-6 md:p-10 font-sans">
       {/* HEADER */}
@@ -158,7 +236,6 @@ export default function FoundersDashboard() {
             ></div>
           </div>
         </div>
-
         <div className="bg-[#131926] p-5 rounded-xl border border-slate-800">
           <div className="flex justify-between items-center mb-2">
             <span className="text-xs font-semibold text-slate-400">Progreso Semana {activeWeek}</span>
@@ -192,7 +269,6 @@ export default function FoundersDashboard() {
 
       {/* COLUMNAS DE TAREAS */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
         {/* COLUMNA RODRIGO (CEO) */}
         <div className="space-y-6">
           <div className="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -203,7 +279,6 @@ export default function FoundersDashboard() {
               {rodrigoWeekTasks.filter((t) => t.completed).length} / {rodrigoWeekTasks.length}
             </span>
           </div>
-
           {rodrigoWeekTasks.map((task) => (
             <TaskCard
               key={task.id}
@@ -225,7 +300,6 @@ export default function FoundersDashboard() {
               {federicoWeekTasks.filter((t) => t.completed).length} / {federicoWeekTasks.length}
             </span>
           </div>
-
           {federicoWeekTasks.map((task) => (
             <TaskCard
               key={task.id}
@@ -236,7 +310,6 @@ export default function FoundersDashboard() {
             />
           ))}
         </div>
-
       </div>
     </div>
   );
@@ -277,7 +350,6 @@ function TaskCard({
           {task.completed ? '✓ Listo' : 'Marcar listo'}
         </button>
       </div>
-
       <p className="text-xs text-slate-400 mb-4 leading-relaxed">{task.description}</p>
 
       {/* BLOQUE DE PROMPT */}
