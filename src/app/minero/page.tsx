@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import LotUploadForm from "@/components/LotUploadForm";
 
 interface Lote {
   id: string;
@@ -22,12 +23,6 @@ interface Oferta {
 }
 
 export default function MineroPage() {
-  // Estados del Formulario
-  const [toneladas, setToneladas] = useState("");
-  const [pureza, setPureza] = useState("");
-  const [puerto, setPuerto] = useState("Manzanillo");
-  const [precio, setPrecio] = useState("");
-  const [registrando, setRegistrando] = useState(false);
   const [autenticado, setAutenticado] = useState(false);
 
   // Estados de Lotes y Ofertas
@@ -78,37 +73,6 @@ export default function MineroPage() {
   useEffect(() => {
     obtenerMisLotes();
   }, []);
-
-  // 3. Registrar un nuevo lote
-  const manejarRegistroLote = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!toneladas || !pureza || !precio) return alert("Llena todos los campos");
-
-    setRegistrando(true);
-    try {
-      const { error } = await supabase.from("lotes").insert([
-        {
-          toneladas: Number(toneladas),
-          pureza_porcentaje: Number(pureza),
-          puerto_origen: puerto,
-          precio_usd: Number(precio),
-          estatus: "publicado",
-        },
-      ]);
-
-      if (error) throw error;
-
-      alert("¡Lote registrado con éxito!");
-      setToneladas("");
-      setPureza("");
-      setPrecio("");
-      obtenerMisLotes(); // Recargar lista
-    } catch (error: any) {
-      alert("Error al registrar lote: " + error.message);
-    } finally {
-      setRegistrando(false);
-    }
-  };
 
   // 4. Ver Ofertas de un lote específico
   const verOfertasDelLote = async (lote: Lote) => {
@@ -168,32 +132,7 @@ export default function MineroPage() {
           {autenticado ? "✓ Usuario de Prueba Conectado" : "⚡ Autenticar Usuario de Prueba"}
         </button>
 
-        <form onSubmit={manejarRegistroLote} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Toneladas</label>
-            <input type="number" required value={toneladas} onChange={(e) => setToneladas(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500" placeholder="Ej. 500"/>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Pureza (%)</label>
-            <input type="number" step="0.1" required value={pureza} onChange={(e) => setPureza(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500" placeholder="Ej. 99.4"/>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Puerto de Origen</label>
-            <select value={puerto} onChange={(e) => setPuerto(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
-              <option value="Manzanillo">Manzanillo</option>
-              <option value="Lázaro Cárdenas">Lázaro Cárdenas</option>
-              <option value="Veracruz">Veracruz</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Precio Deseado (USD)</label>
-            <input type="number" required value={precio} onChange={(e) => setPrecio(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500" placeholder="Ej. 3500000"/>
-          </div>
-
-          <button type="submit" disabled={registrando} className="w-full bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50">
-            {registrando ? "Registrando..." : "Registrar Lote"}
-          </button>
-        </form>
+        <LotUploadForm onSuccess={obtenerMisLotes} />
       </div>
 
       {/* COLUMNA DERECHA: HISTORIAL Y OFERTAS */}
