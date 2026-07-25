@@ -124,15 +124,26 @@ export default function BuyerCatalogPage() {
     }
   }
 
-  // Al cargar la página, revisa si ya había una sesión de comprador activa
-  // (Supabase persiste la sesión en el navegador), para no pedir re-autenticar
-  // en cada refresh.
+  // Si ya hay una sesion activa en el navegador (Supabase la persiste), hay
+  // que confirmar que sea realmente una cuenta de COMPRADOR antes de
+  // adoptarla -- si el navegador tenia una sesion de minero abierta (por
+  // ejemplo por haber probado /minero antes), nunca debe tratarse como si
+  // fuera el comprador.
+  async function esSesionDeComprador(userId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('perfiles')
+      .select('rol')
+      .eq('id', userId)
+      .maybeSingle();
+    return !error && data?.rol === 'comprador';
+  }
+
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getSession();
       const usuario = data.session?.user ?? null;
 
-      if (usuario) {
+      if (usuario && (await esSesionDeComprador(usuario.id))) {
         setAutenticado(true);
         setEmailComprador(usuario.email ?? null);
         setCompradorId(usuario.id);
