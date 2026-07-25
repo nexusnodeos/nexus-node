@@ -26,9 +26,25 @@ interface MiOferta {
   lotes: { toneladas: number; puerto_origen: string; mineral: string } | null;
 }
 
-// NOTA: todavía no hay autenticación real de comprador (Tarea 1.04 / 1.6 pendiente).
-// Se usa un email de prueba fijo, igual que ya hacía /comprador antes de unificarse aquí.
-const EMAIL_COMPRADOR_PRUEBA = 'comprador.test@nexus.com';
+interface Criterios {
+  mineral_preferido: string;
+  volumen_minimo_toneladas: string;
+  pureza_minima_porcentaje: string;
+  presupuesto_maximo_usd: string;
+}
+
+// Cuenta de prueba para simular al comprador (Rodrigo) durante el piloto.
+// El rol="comprador" en los metadatos hace que el trigger on_auth_user_created
+// de Supabase cree automáticamente el perfil correcto (ver migración de hoy).
+const EMAIL_PRUEBA_COMPRADOR = 'comprador.demo@nexus.com';
+const PASSWORD_PRUEBA_COMPRADOR = 'NexusComprador123!';
+
+const CRITERIOS_VACIOS: Criterios = {
+  mineral_preferido: 'Cobre (Concentrado)',
+  volumen_minimo_toneladas: '',
+  pureza_minima_porcentaje: '95',
+  presupuesto_maximo_usd: '',
+};
 
 export default function BuyerCatalogPage() {
   const [lotes, setLotes] = useState<Lote[]>([]);
@@ -36,7 +52,6 @@ export default function BuyerCatalogPage() {
   const [cargando, setCargando] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMineral, setSelectedMineral] = useState('ALL');
-
   const [selectedLot, setSelectedLot] = useState<Lote | null>(null);
   const [modalStep, setModalStep] = useState<'REQUIREMENTS' | 'SUCCESS'>('REQUIREMENTS');
   const [hasSignedNCNDA, setHasSignedNCNDA] = useState(false);
@@ -44,24 +59,43 @@ export default function BuyerCatalogPage() {
   const [ofertaDinero, setOfertaDinero] = useState('');
   const [enviandoOferta, setEnviandoOferta] = useState(false);
 
-  async function cargarDatos() {
+  // --- Autenticación real de comprador ---
+  const [autenticado, setAutenticado] = useState(false);
+  const [autenticando, setAutenticando] = useState(false);
+  const [emailComprador, setEmailComprador] = useState<string | null>(null);
+  const [compradorId, setCompradorId] = useState<string | null>(null);
+
+  // --- Criterios de compra (alimentan al Matchmaker) ---
+  const [criterios, setCriterios] = useState<Criterios>(CRITERIOS_VACIOS);
+  const [criteriosGuardados, setCriteriosGuardados] = useState(false);
+  const [guardandoCriterios, setGuardandoCriterios] = useState(false);
+
+  async function cargarDatos(emailActivo?: string | null) {
     setCargando(true);
     try {
       const { data: dataLotes, error: errorLotes } = await supabase
         .from('lotes')
-        .select('id, mineral, toneladas, pureza_porcentaje, puerto_origen, pais, laboratorio, antifraud_score, precio_usd, precio_publicado_usd, tiene_exclusividad, creado_en')
+        .select(
+          'id, mineral, toneladas, pureza_porcentaje, puerto_origen, pais, laboratorio, antifraud_score, precio_usd, precio_publicado_usd, tiene_exclusividad, creado_en'
+        )
         .eq('estatus', 'publicado')
         .order('creado_en', { ascending: false });
+
       if (errorLotes) throw errorLotes;
       setLotes(dataLotes || []);
 
-      const { data: dataOfertas, error: errorOfertas } = await supabase
-        .from('ofertas')
-        .select(`id, monto_ofertado, estatus, creado_en, lotes ( toneladas, puerto_origen, mineral )`)
-        .eq('comprador_email', EMAIL_COMPRADOR_PRUEBA)
-        .order('creado_en', { ascending: false });
-      if (errorOfertas) throw errorOfertas;
-      setMisOfertas((dataOfertas as any) || []);
+      if (emailActivo) {
+        const { data: dataOfertas, error: errorOfertas } = await supabase
+          .from('ofertas')
+          .select(`id, monto_ofertado, estatus, creado_en, lotes ( toneladas, puerto_origen, mineral )`)
+          .eq('comprador_email', emailActivo)
+          .order('creado_en', { ascending: false });
+
+        if (errorOfertas) throw errorOfertas;
+        setMisOfertas((dataOfertas as any) || []);
+      } else {
+        setMisOfertas([]);
+      }
     } catch (error) {
       console.error('Error al cargar catálogo:', error);
     } finally {
@@ -69,9 +103,126 @@ export default function BuyerCatalogPage() {
     }
   }
 
+  async function cargarCriterios(idComprador: string) {
+    const { data, error } = await supabase
+      .from('criterios_comprador')
+      .select('*')
+      .eq('comprador_id', idComprador)
+      .eq('activo', true)
+      .order('creado_en', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!error && data) {
+      setCriterios({
+        mineral_preferido: data.mineral_preferido,
+        volumen_minimo_toneladas: String(data.volumen_minimo_toneladas),
+        pureza_minima_porcentaje: String(data.pureza_minima_porcentaje),
+        presupuesto_maximo_usd: String(data.presupuesto_maximo_usd),
+      });
+      setCriteriosGuardados(true);
+    }
+  }
+
+  // Al cargar la página, revisa si ya había una sesión de comprador activa
+  // (Supabase persiste la sesión en el navegador), para no pedir re-autenticar
+  // en cada refresh.
   useEffect(() => {
-    cargarDatos();
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const usuario = data.session?.user ?? null;
+
+      if (usuario) {
+        setAutenticado(true);
+        setEmailComprador(usuario.email ?? null);
+        setCompradorId(usuario.id);
+        cargarCriterios(usuario.id);
+        cargarDatos(usuario.email ?? null);
+      } else {
+        cargarDatos(null);
+      }
+    })();
   }, []);
+
+  const manejarAutenticacionComprador = async () => {
+    setAutenticando(true);
+    try {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: EMAIL_PRUEBA_COMPRADOR,
+        password: PASSWORD_PRUEBA_COMPRADOR,
+      });
+
+      let usuario = signInData?.user ?? null;
+
+      if (signInError) {
+        // No existe todavía: lo registramos con rol="comprador" en los metadatos.
+        // El trigger on_auth_user_created crea el perfil correcto automáticamente.
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: EMAIL_PRUEBA_COMPRADOR,
+          password: PASSWORD_PRUEBA_COMPRADOR,
+          options: {
+            data: { rol: 'comprador', nombre_empresa: 'Comprador Piloto (Rodrigo)' },
+          },
+        });
+
+        if (signUpError) {
+          alert('Error de autenticación de comprador: ' + signUpError.message);
+          return;
+        }
+        usuario = signUpData.user;
+      }
+
+      if (!usuario) {
+        alert('No se pudo autenticar al comprador de prueba.');
+        return;
+      }
+
+      setAutenticado(true);
+      setEmailComprador(usuario.email ?? EMAIL_PRUEBA_COMPRADOR);
+      setCompradorId(usuario.id);
+      await cargarCriterios(usuario.id);
+      await cargarDatos(usuario.email ?? EMAIL_PRUEBA_COMPRADOR);
+    } finally {
+      setAutenticando(false);
+    }
+  };
+
+  const guardarCriterios = async () => {
+    if (!compradorId) return;
+    if (!criterios.presupuesto_maximo_usd) {
+      alert('Indica tu presupuesto máximo — el Matchmaker lo necesita para poder calificarte contra nuevos lotes.');
+      return;
+    }
+    setGuardandoCriterios(true);
+    try {
+      // Desactiva el criterio anterior (si existía) antes de guardar el nuevo,
+      // para que el Matchmaker siempre use solo tu criterio más reciente.
+      await supabase
+        .from('criterios_comprador')
+        .update({ activo: false })
+        .eq('comprador_id', compradorId)
+        .eq('activo', true);
+
+      const { error } = await supabase.from('criterios_comprador').insert([
+        {
+          comprador_id: compradorId,
+          mineral_preferido: criterios.mineral_preferido,
+          volumen_minimo_toneladas: Number(criterios.volumen_minimo_toneladas || 0),
+          pureza_minima_porcentaje: Number(criterios.pureza_minima_porcentaje || 90),
+          presupuesto_maximo_usd: Number(criterios.presupuesto_maximo_usd),
+          activo: true,
+        },
+      ]);
+
+      if (error) throw error;
+      setCriteriosGuardados(true);
+      alert('Tus criterios de compra quedaron guardados. El Matchmaker ya puede calificarte contra nuevos lotes.');
+    } catch (error: any) {
+      alert('No se pudieron guardar tus criterios: ' + error.message);
+    } finally {
+      setGuardandoCriterios(false);
+    }
+  };
 
   const filteredLots = lotes.filter((lote) => {
     const codigo = lote.id.slice(0, 8).toUpperCase();
@@ -83,6 +234,10 @@ export default function BuyerCatalogPage() {
   });
 
   const handleOpenReserveModal = (lote: Lote) => {
+    if (!autenticado || !emailComprador) {
+      alert('Primero autentícate como comprador (panel derecho) para poder reservar un lote.');
+      return;
+    }
     setSelectedLot(lote);
     setModalStep('REQUIREMENTS');
     setHasSignedNCNDA(false);
@@ -92,19 +247,23 @@ export default function BuyerCatalogPage() {
 
   const confirmarReserva = async () => {
     if (!selectedLot || !ofertaDinero) return;
+    if (!autenticado || !emailComprador) {
+      alert('Primero autentícate como comprador para poder reservar un lote.');
+      return;
+    }
     setEnviandoOferta(true);
     try {
       const { error } = await supabase.from('ofertas').insert([
         {
           lote_id: selectedLot.id,
-          comprador_email: EMAIL_COMPRADOR_PRUEBA,
+          comprador_email: emailComprador,
           monto_ofertado: Number(ofertaDinero),
           estatus: 'pendiente',
         },
       ]);
       if (error) throw error;
       setModalStep('SUCCESS');
-      cargarDatos();
+      cargarDatos(emailComprador);
     } catch (error: any) {
       alert('No se pudo confirmar la reserva: ' + error.message);
     } finally {
@@ -125,8 +284,10 @@ export default function BuyerCatalogPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 bg-[#131926] px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="text-slate-300 font-mono">Modo Comprador Acreditado</span>
+            <span className={`w-2 h-2 rounded-full ${autenticado ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`}></span>
+            <span className="text-slate-300 font-mono">
+              {autenticado ? `Comprador: ${emailComprador}` : 'Modo Comprador — sin autenticar'}
+            </span>
           </div>
         </div>
 
@@ -216,35 +377,107 @@ export default function BuyerCatalogPage() {
         )}
       </div>
 
-      {/* SIDEBAR: MIS OFERTAS ENVIADAS */}
-      <div className="bg-[#131926] border border-slate-800 rounded-xl p-6 h-fit">
-        <h2 className="text-xl font-bold text-slate-200 mb-4">Mis Ofertas Enviadas</h2>
-        {cargando ? (
-          <p className="text-sm text-slate-500">Cargando tus ofertas...</p>
-        ) : misOfertas.length === 0 ? (
-          <p className="text-sm text-slate-500">Aún no has enviado ofertas de compra.</p>
-        ) : (
-          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-            {misOfertas.map((of) => (
-              <div key={of.id} className="bg-[#0B0F17] border border-slate-800 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full uppercase ${
-                    of.estatus === 'aceptada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                    of.estatus === 'rechazada' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-                    'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                  }`}>
-                    {of.estatus === 'aceptada' ? '✓ Ganada' : of.estatus === 'rechazada' ? '✗ Rechazada' : '⏳ Pendiente'}
-                  </span>
-                  <span className="text-[10px] text-slate-500">{new Date(of.creado_en).toLocaleDateString()}</span>
-                </div>
-                <p className="text-sm font-medium text-slate-300">
-                  {of.lotes?.mineral || 'N/A'} — {of.lotes?.toneladas || 0} Tons en {of.lotes?.puerto_origen || 'N/A'}
-                </p>
-                <p className="text-md font-bold text-emerald-400 mt-1">${Number(of.monto_ofertado).toLocaleString()} USD</p>
+      {/* SIDEBAR DERECHO: PERFIL DE COMPRADOR + MIS OFERTAS */}
+      <div className="space-y-6">
+        {/* PERFIL DE COMPRADOR / AUTENTICACIÓN */}
+        <div className="bg-[#131926] border border-slate-800 rounded-xl p-6 h-fit">
+          <h2 className="text-lg font-bold text-slate-200 mb-3">Tu Perfil de Comprador</h2>
+
+          {!autenticado ? (
+            <>
+              <p className="text-xs text-slate-400 mb-3">
+                Autentícate como comprador para reservar lotes y para que el Agente Matchmaker
+                pueda calificarte automáticamente contra nuevos lotes que se publiquen.
+              </p>
+              <button
+                onClick={manejarAutenticacionComprador}
+                disabled={autenticando}
+                className="w-full py-2.5 px-4 rounded-lg font-semibold border bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200 text-xs transition-colors"
+              >
+                {autenticando ? 'Conectando...' : '⚡ Autenticar como Comprador de Prueba'}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-emerald-400 font-semibold mb-4">✓ Conectado como {emailComprador}</p>
+              <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                Criterios de Compra (alimentan al Matchmaker)
+              </h3>
+              <div className="space-y-2 mb-3">
+                <select
+                  value={criterios.mineral_preferido}
+                  onChange={(e) => setCriterios({ ...criterios, mineral_preferido: e.target.value })}
+                  className="w-full bg-[#0B0F17] border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2"
+                >
+                  <option value="Cobre (Concentrado)">Cobre (Concentrado)</option>
+                  <option value="Oro">Oro</option>
+                  <option value="Litio">Litio</option>
+                </select>
+                <input
+                  type="number"
+                  placeholder="Volumen mínimo (Ton)"
+                  value={criterios.volumen_minimo_toneladas}
+                  onChange={(e) => setCriterios({ ...criterios, volumen_minimo_toneladas: e.target.value })}
+                  className="w-full bg-[#0B0F17] border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2"
+                />
+                <input
+                  type="number"
+                  placeholder="Pureza mínima (%)"
+                  value={criterios.pureza_minima_porcentaje}
+                  onChange={(e) => setCriterios({ ...criterios, pureza_minima_porcentaje: e.target.value })}
+                  className="w-full bg-[#0B0F17] border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2"
+                />
+                <input
+                  type="number"
+                  placeholder="Presupuesto máximo (USD)"
+                  value={criterios.presupuesto_maximo_usd}
+                  onChange={(e) => setCriterios({ ...criterios, presupuesto_maximo_usd: e.target.value })}
+                  className="w-full bg-[#0B0F17] border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2"
+                />
               </div>
-            ))}
-          </div>
-        )}
+              <button
+                onClick={guardarCriterios}
+                disabled={guardandoCriterios}
+                className="w-full py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition"
+              >
+                {guardandoCriterios ? 'Guardando...' : criteriosGuardados ? 'Actualizar Criterios' : 'Guardar Criterios'}
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* MIS OFERTAS ENVIADAS */}
+        <div className="bg-[#131926] border border-slate-800 rounded-xl p-6 h-fit">
+          <h2 className="text-xl font-bold text-slate-200 mb-4">Mis Ofertas Enviadas</h2>
+          {!autenticado ? (
+            <p className="text-sm text-slate-500">Autentícate para ver tus ofertas.</p>
+          ) : cargando ? (
+            <p className="text-sm text-slate-500">Cargando tus ofertas...</p>
+          ) : misOfertas.length === 0 ? (
+            <p className="text-sm text-slate-500">Aún no has enviado ofertas de compra.</p>
+          ) : (
+            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+              {misOfertas.map((of) => (
+                <div key={of.id} className="bg-[#0B0F17] border border-slate-800 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full uppercase ${
+                      of.estatus === 'aceptada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                      of.estatus === 'rechazada' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                      'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                    }`}>
+                      {of.estatus === 'aceptada' ? '✓ Ganada' : of.estatus === 'rechazada' ? '✗ Rechazada' : '⏳ Pendiente'}
+                    </span>
+                    <span className="text-[10px] text-slate-500">{new Date(of.creado_en).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-sm font-medium text-slate-300">
+                    {of.lotes?.mineral || 'N/A'} — {of.lotes?.toneladas || 0} Tons en {of.lotes?.puerto_origen || 'N/A'}
+                  </p>
+                  <p className="text-md font-bold text-emerald-400 mt-1">${Number(of.monto_ofertado).toLocaleString()} USD</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* MODAL DE RESERVA */}
@@ -257,7 +490,6 @@ export default function BuyerCatalogPage() {
             >
               ✕
             </button>
-
             {modalStep === 'REQUIREMENTS' && (
               <div>
                 <div className="mb-4">
@@ -297,7 +529,8 @@ export default function BuyerCatalogPage() {
                 </div>
                 <p className="text-[10px] text-slate-500 mb-3">
                   Nota piloto: firma y adjunto todavía son un gate de UI (Tareas 2.1/2.2 — firma digital real —
-                  aún no construidas). La oferta que se registra al confirmar sí es real en Supabase.
+                  aún no construidas). La oferta que se registra al confirmar sí es real en Supabase, ligada a tu
+                  cuenta autenticada de comprador.
                 </p>
                 <button
                   disabled={!hasSignedNCNDA || !hasUploadedPOF || enviandoOferta}
@@ -312,7 +545,6 @@ export default function BuyerCatalogPage() {
                 </button>
               </div>
             )}
-
             {modalStep === 'SUCCESS' && (
               <div className="text-center py-4">
                 <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">✓</div>
