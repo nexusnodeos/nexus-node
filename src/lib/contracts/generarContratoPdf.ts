@@ -1,6 +1,8 @@
+// src/lib/contracts/generarContratoPdf.ts
 // IMPORTANTE: este módulo corre SOLO en servidor (API Route / Server Action).
 // Usa la Service Role Key porque necesita saltarse RLS para escribir
 // en el bucket "contracts" en nombre del sistema, no del usuario.
+
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { createClient } from "@supabase/supabase-js";
 
@@ -50,9 +52,29 @@ async function obtenerDatosContrato(loteId: string): Promise<DatosContrato> {
   };
 }
 
-export async function generarContratoPdf(loteId: string): Promise<{ path: string }> {
-  const datos = await obtenerDatosContrato(loteId);
+/**
+ * SEGURIDAD (hallazgo 2026-07-24): antes esta función siempre escribía el
+ * nombre real del vendedor y el email del comprador en el PDF, sin verificar
+ * NCNDA, POF ni depósito en escrow. Un comprador con solo una "oferta
+ * aceptada" podía obtener la identidad real del minero y evadir la comisión
+ * de Nexus. Ahora la revelación de identidad real es un parámetro explícito,
+ * apagado por default.
+ */
+function idVendedorCodificado(loteId: string): string {
+  return `VENDEDOR-${loteId.slice(0, 8).toUpperCase()}`;
+}
 
+function idCompradorCodificado(compradorEmail: string): string {
+  const hash = compradorEmail
+    .split("")
+    .reduce((acc, c) => (acc * 31 + c.charCodeAt(0)) % 99999, 7);
+  return `COMPRADOR-${hash.toString().padStart(5, "0")}`;
+}
+
+async function generarPdfBase(
+  datos: DatosContrato,
+  opciones: { identidadRevelada: boolean }
+): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([612, 792]); // carta
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -60,7 +82,6 @@ export async function generarContratoPdf(loteId: string): Promise<{ path: string
 
   let y = 740;
   const margenIzq = 60;
-
   const escribirLinea = (texto: string, tamano = 11, negrita = false, salto = 20) => {
     page.drawText(texto, {
       x: margenIzq,
@@ -72,7 +93,18 @@ export async function generarContratoPdf(loteId: string): Promise<{ path: string
     y -= salto;
   };
 
-  escribirLinea("CONTRATO DE COMPRAVENTA DE COBRE", 16, true, 30);
+  const vendedorMostrado = opciones.identidadRevelada
+    ? datos.mineroNombreEmpresa
+    : idVendedorCodificado(datos.loteId);
+  const compradorMostrado = opciones.identidadRevelada
+    ? datos.compradorEmail
+    : idCompradorCodificado(datos.compradorEmail);
+
+  const titulo = opciones.identidadRevelada
+    ? "CONTRATO DE COMPRAVENTA FINAL (ETAPA 2 - IDENTIDAD REVELADA)"
+    : "RESERVA DE EXCLUSIVIDAD 72H + NCNDA (ETAPA 1 - IDENTIDAD CODIFICADA)";
+
+  escribirLinea(titulo, 15, true, 30);
   escribirLinea("Nexus Node — Plataforma de Comercio de Cobre Certificado", 10, false, 30);
 
   escribirLinea("DATOS DEL LOTE", 13, true, 22);
@@ -82,8 +114,13 @@ export async function generarContratoPdf(loteId: string): Promise<{ path: string
   escribirLinea(`Puerto de Origen: ${datos.puertoOrigen}`, 11, false, 28);
 
   escribirLinea("PARTES", 13, true, 22);
-  escribirLinea(`Vendedor (Minero): ${datos.mineroNombreEmpresa}`);
-  escribirLinea(`Comprador: ${datos.compradorEmail}`, 11, false, 28);
+  escribirLinea(`Vendedor (Minero): ${vendedorMostrado}`);
+  escribirLinea(`Comprador: ${compradorMostrado}`, 11, false, 28);
+
+  if (!opciones.identidadRevelada) {
+    escribirLinea("La identidad real de ambas partes se revela unicamente tras la", 9);
+    escribirLinea("confirmacion de deposito en escrow (Contrato de Compraventa Final).", 9, false, 24);
+  }
 
   escribirLinea("TÉRMINOS COMERCIALES", 13, true, 22);
   escribirLinea(`Precio Publicado: $${datos.precioUsd.toLocaleString()} USD`);
@@ -95,9 +132,15 @@ export async function generarContratoPdf(loteId: string): Promise<{ path: string
     false
   );
 
-  const pdfBytes = await pdfDoc.save();
+  return pdfDoc.save();
+}
 
-  const rutaArchivo = `${datos.loteId}/contrato_${Date.now()}.pdf`;
+async function guardarYRegistrar(
+  loteId: string,
+  pdfBytes: Uint8Array,
+  etiqueta: "reserva_ncnda" | "compraventa_final"
+): Promise<{ path: string }> {
+  const rutaArchivo = `${loteId}/${etiqueta}_${Date.now()}.pdf`;
 
   const { error: errorUpload } = await supabaseAdmin.storage
     .from("contracts")
@@ -107,10 +150,35 @@ export async function generarContratoPdf(loteId: string): Promise<{ path: string
 
   await supabaseAdmin.from("agent_activity_logs").insert({
     agent_name: "Transaction Notary",
-    lot_id: datos.loteId,
-    payload: { accion: "contrato_generado", ruta: rutaArchivo },
+    lot_id: loteId,
+    payload: { accion: "contrato_generado", tipo: etiqueta, ruta: rutaArchivo },
     status: "completado",
   });
 
   return { path: rutaArchivo };
 }
+
+/**
+ * Etapa 1 — se llama al aceptar la oferta. Identidad SIEMPRE codificada.
+ */
+export async function generarContratoReservaPdf(loteId: string): Promise<{ path: string }> {
+  const datos = await obtenerDatosContrato(loteId);
+  const pdfBytes = await generarPdfBase(datos, { identidadRevelada: false });
+  return guardarYRegistrar(loteId, pdfBytes, "reserva_ncnda");
+}
+
+/**
+ * Etapa 2 — SOLO debe llamarse desde el Agente Financiero & Escrow
+ * (Tarea 2.3), una vez confirmado el depósito completo. Aquí sí se revela
+ * la identidad real de ambas partes.
+ */
+export async function generarContratoFinalPdf(loteId: string): Promise<{ path: string }> {
+  const datos = await obtenerDatosContrato(loteId);
+  const pdfBytes = await generarPdfBase(datos, { identidadRevelada: true });
+  return guardarYRegistrar(loteId, pdfBytes, "compraventa_final");
+}
+
+// Alias retrocompatible: cualquier código existente que aún importe
+// generarContratoPdf() recibe la version segura (Etapa 1), nunca la que
+// revela identidad, para que el hueco no se reintroduzca por accidente.
+export const generarContratoPdf = generarContratoReservaPdf;
