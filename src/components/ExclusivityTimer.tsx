@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 // Debe coincidir con el INTERVAL usado en expirar_reservas_desatendidas() (Supabase)
-const MINUTOS_EXCLUSIVIDAD = 15;
+const MINUTOS_EXCLUSIVIDAD = 10;
 
 interface ExclusivityTimerProps {
   reservadoEn: string; // ISO timestamp, viene de lotes.reservado_en
