@@ -33,7 +33,7 @@ async function obtenerDatosContrato(loteId: string): Promise<DatosContrato> {
   const { data: lote, error: errorLote } = await supabaseAdmin
     .from("lotes")
     .select(
-      "id, mineral, toneladas, pureza_porcentaje, puerto_origen, pais, precio_usd, precio_publicado_usd, fecha_limite_exclusividad, minero_id, perfiles(nombre_empresa)"
+      "id, mineral, toneladas, pureza_porcentaje, puerto_origen, pais, precio_usd, precio_publicado_usd, fecha_limite_exclusividad, minero_id, perfiles!lotes_minero_id_fkey(nombre_empresa)"
     )
     .eq("id", loteId)
     .single();

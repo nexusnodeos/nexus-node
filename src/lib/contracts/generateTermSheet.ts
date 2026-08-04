@@ -1,6 +1,9 @@
-// "dealId" = lote_id. Genera un resumen corto de términos (Term Sheet),
-// distinto del contrato final (generarContratoPdf.ts), útil antes de
-// que la negociación quede cerrada del todo.
+// Genera un resumen corto de términos (Term Sheet), distinto del contrato
+// final (generarContratoPdf.ts), útil antes de que la negociación quede
+// cerrada del todo.
+// NOTA (fix 2026-08-03): el parámetro se unificó a "loteId" para que los
+// tres endpoints de /api/contratos usen el mismo nombre — antes esta función
+// usaba "dealId", inconsistente con el resto.
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { createClient } from "@supabase/supabase-js";
 
@@ -24,7 +27,7 @@ interface DatosTermSheet {
 async function obtenerDatosDeal(loteId: string): Promise<DatosTermSheet> {
   const { data: lote, error: errorLote } = await supabaseAdmin
     .from("lotes")
-    .select("id, toneladas, pureza_porcentaje, puerto_origen, precio_usd, perfiles(nombre_empresa)")
+    .select("id, toneladas, pureza_porcentaje, puerto_origen, precio_usd, perfiles!lotes_minero_id_fkey(nombre_empresa)")
     .eq("id", loteId)
     .single();
 
@@ -53,8 +56,8 @@ async function obtenerDatosDeal(loteId: string): Promise<DatosTermSheet> {
   };
 }
 
-export async function generateTermSheet(dealId: string): Promise<{ path: string }> {
-  const datos = await obtenerDatosDeal(dealId);
+export async function generateTermSheet(loteId: string): Promise<{ path: string }> {
+  const datos = await obtenerDatosDeal(loteId);
 
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([612, 792]);
