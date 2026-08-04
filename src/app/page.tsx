@@ -6,7 +6,7 @@ function NexusLogo() {
       <div className="flex h-9 w-9 rotate-45 items-center justify-center rounded-sm border-2 border-cyan-brand">
         <div className="h-3 w-3 -rotate-45 bg-gold-brand" />
       </div>
-      <span className="font-heading text-xl font-bold tracking-[0.2em] text-white">
+      <span className="font-heading text-xl font-bold tracking-[0.2em] text-ink">
         NEXUS NODE
       </span>
     </div>
@@ -18,32 +18,44 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col">
       <header className="glass-panel sticky top-0 z-20 flex items-center justify-between px-6 py-5 md:px-10">
         <NexusLogo />
-        <span className="font-mono text-xs uppercase tracking-widest text-slate-400">
+        <span className="font-mono text-xs uppercase tracking-widest text-ink-soft">
           Protocolo Zero-Trust v1.0
         </span>
       </header>
 
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 md:px-10">
         <div className="w-full max-w-4xl space-y-10 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-brand/30 bg-cyan-brand/5 px-4 py-1.5 font-mono text-xs uppercase tracking-widest text-cyan-brand">
+          <div
+            className="fade-up inline-flex items-center gap-2 rounded-full border border-cyan-brand/30 bg-cyan-brand/5 px-4 py-1.5 font-mono text-xs uppercase tracking-widest text-cyan-brand"
+            style={{ animationDelay: "0.05s" }}
+          >
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-brand" />
             Infraestructura Institucional
           </div>
 
-          <h1 className="font-heading text-4xl font-bold leading-tight text-white md:text-6xl lg:text-7xl">
+          <h1
+            className="fade-up font-heading text-4xl font-bold leading-tight text-ink md:text-6xl lg:text-7xl"
+            style={{ animationDelay: "0.15s" }}
+          >
             Nexus Node
             <span className="mt-2 block text-2xl font-semibold text-gold-brand md:text-3xl lg:text-4xl">
               Protocolo Zero-Trust
             </span>
           </h1>
 
-          <p className="mx-auto max-w-2xl text-lg leading-relaxed text-slate-400 md:text-xl">
+          <p
+            className="fade-up mx-auto max-w-2xl text-lg leading-relaxed text-ink-soft md:text-xl"
+            style={{ animationDelay: "0.25s" }}
+          >
             Plataforma de gobernanza para validación criptográfica de lotes de
             cobre en puertos LATAM. Eliminamos intermediación opaca mediante
             fideicomisos, trazabilidad aduanal y liquidación en 72 horas.
           </p>
 
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <div
+            className="fade-up flex flex-col items-center justify-center gap-4 sm:flex-row"
+            style={{ animationDelay: "0.35s" }}
+          >
             <Link href="/minero" className="btn-primary text-base">
               Entrar al Protocolo
               <svg
@@ -60,7 +72,7 @@ export default function HomePage() {
                 />
               </svg>
             </Link>
-            <span className="font-mono text-xs text-slate-500">
+            <span className="font-mono text-xs text-ink-soft">
               Manzanillo · Veracruz · Escrow Criptográfico
             </span>
           </div>
@@ -83,18 +95,19 @@ export default function HomePage() {
               title: "Zero-Trust",
               desc: "Sin intermediarios opacos. Cada actor verificado en la red Nexus.",
             },
-          ].map((item) => (
+          ].map((item, i) => (
             <article
               key={item.title}
-              className="glass-panel rounded-xl p-6 text-left transition-colors hover:border-gold-brand/40"
+              className="fade-up glass-panel rounded-xl p-6 text-left transition-all hover:-translate-y-1 hover:border-gold-brand/40 hover:shadow-[0_16px_30px_-18px_rgba(36,26,20,0.25)]"
+              style={{ animationDelay: `${0.45 + i * 0.1}s` }}
             >
               <span className="font-mono text-xs uppercase tracking-widest text-cyan-brand">
                 {item.label}
               </span>
-              <h2 className="mt-3 font-heading text-lg font-semibold text-white">
+              <h2 className="mt-3 font-heading text-lg font-semibold text-ink">
                 {item.title}
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
                 {item.desc}
               </p>
             </article>
@@ -102,7 +115,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="border-t border-slate-700/40 px-6 py-6 text-center font-mono text-xs text-slate-500 md:px-10">
+      <footer className="border-t border-line px-6 py-6 text-center font-mono text-xs text-ink-soft md:px-10">
         NEXUS NODE OS · Infraestructura Financiera para Commodities
       </footer>
     </div>

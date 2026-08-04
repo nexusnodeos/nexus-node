@@ -10,14 +10,21 @@ const config: Config = {
     extend: {
       colors: {
         slate: {
-          deep: "#0A192F",
-          panel: "#0F172A",
+          deep: "#FFFFFF",
+          panel: "#FBF6F0",
         },
         cyan: {
-          brand: "#00E5CC",
+          brand: "#B15A2A",
         },
         gold: {
-          brand: "#C0A060",
+          brand: "#8C4620",
+        },
+        ink: {
+          DEFAULT: "#241A14",
+          soft: "#75604F",
+        },
+        line: {
+          DEFAULT: "#E9DFD2",
         },
       },
       fontFamily: {
@@ -27,7 +34,7 @@ const config: Config = {
       },
       backgroundImage: {
         "grid-pattern":
-          "linear-gradient(rgba(0, 229, 204, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 229, 204, 0.03) 1px, transparent 1px)",
+          "linear-gradient(rgba(177, 90, 42, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(177, 90, 42, 0.05) 1px, transparent 1px)",
       },
       backgroundSize: {
         grid: "48px 48px",

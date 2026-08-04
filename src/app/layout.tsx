@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Poppins, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const heading = Plus_Jakarta_Sans({
+const heading = Poppins({
   subsets: ["latin"],
   variable: "--font-heading",
-  weight: ["400", "600", "700"],
+  weight: ["500", "600", "700", "800"],
 });
 
-const body = Inter({
+const body = Poppins({
   subsets: ["latin"],
   variable: "--font-body",
   weight: ["400", "500", "600"],
@@ -33,6 +33,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="h-full">
+      <head>
+        <meta name="color-scheme" content="light only" />
+        <meta name="theme-color" content="#FFFFFF" />
+      </head>
       <body
         className={`${heading.variable} ${body.variable} ${mono.variable} min-h-full font-body`}
       >

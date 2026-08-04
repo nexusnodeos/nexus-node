@@ -118,15 +118,15 @@ export default function MineroPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="min-h-screen bg-slate-deep text-ink p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* COLUMNA IZQUIERDA: FORMULARIO */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 h-fit">
-        <h1 className="text-2xl font-bold text-amber-500 mb-6">Portal del Minero - Registrar Mineral</h1>
+      <div className="bg-slate-panel border border-line rounded-xl p-6 h-fit">
+        <h1 className="text-2xl font-bold text-cyan-brand mb-6">Portal del Minero - Registrar Mineral</h1>
         
         <button
           onClick={manejarAutenticacionPrueba}
           className={`w-full mb-6 py-2 px-4 rounded-lg font-semibold border transition-colors ${
-            autenticado ? "bg-emerald-950/30 border-emerald-500 text-emerald-400" : "bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200"
+            autenticado ? "bg-emerald-50 border-emerald-400 text-emerald-700" : "bg-white border-line hover:bg-slate-panel text-ink"
           }`}
         >
           {autenticado ? "✓ Usuario de Prueba Conectado" : "⚡ Autenticar Usuario de Prueba"}
@@ -137,21 +137,21 @@ export default function MineroPage() {
 
       {/* COLUMNA DERECHA: HISTORIAL Y OFERTAS */}
       <div className="space-y-6">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-          <h2 className="text-xl font-bold text-slate-200 mb-4">Mis Lotes En Mercado</h2>
+        <div className="bg-slate-panel border border-line rounded-xl p-6">
+          <h2 className="text-xl font-bold text-ink mb-4">Mis Lotes En Mercado</h2>
           
           {misLotes.length === 0 ? (
-            <p className="text-slate-500 text-sm">No has registrado ningún lote todavía.</p>
+            <p className="text-ink-soft text-sm">No has registrado ningún lote todavía.</p>
           ) : (
             <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
               {misLotes.map((lote) => (
-                <div key={lote.id} className="bg-slate-950 border border-slate-800 rounded-lg p-3 flex justify-between items-center">
+                <div key={lote.id} className="bg-white border border-line rounded-lg p-3 flex justify-between items-center">
                   <div>
-                    <p className="font-medium text-sm text-slate-200">{lote.toneladas} Tons - {lote.puerto_origen}</p>
-                    <p className="text-xs text-slate-500">Pureza: {lote.pureza_porcentaje}% | Status: <span className={lote.estatus === "vendido" ? "text-emerald-400 font-bold" : "text-amber-400"}>{lote.estatus}</span></p>
+                    <p className="font-medium text-sm text-ink">{lote.toneladas} Tons - {lote.puerto_origen}</p>
+                    <p className="text-xs text-ink-soft">Pureza: {lote.pureza_porcentaje}% | Status: <span className={lote.estatus === "vendido" ? "text-emerald-600 font-bold" : "text-amber-600"}>{lote.estatus}</span></p>
                   </div>
                   {lote.estatus === "publicado" && (
-                    <button onClick={() => verOfertasDelLote(lote)} className="bg-slate-800 hover:bg-slate-700 text-xs text-amber-500 font-semibold py-1 px-3 rounded border border-slate-700">
+                    <button onClick={() => verOfertasDelLote(lote)} className="bg-white hover:bg-slate-panel text-xs text-cyan-brand font-semibold py-1 px-3 rounded border border-line">
                       Ver Ofertas
                     </button>
                   )}
@@ -163,29 +163,29 @@ export default function MineroPage() {
 
         {/* SUBPANEL DE OFERTAS COMPRADOR */}
         {loteSeleccionado && (
-          <div className="bg-slate-900 border border-amber-500/30 rounded-xl p-6">
-            <h3 className="text-lg font-bold text-amber-500 mb-1">Ofertas para el Lote seleccionado</h3>
-            <p className="text-xs text-slate-400 mb-4">Lote ID: {loteSeleccionado.id.slice(0, 8)}... ({loteSeleccionado.toneladas} Tons)</p>
+          <div className="bg-slate-panel border border-cyan-brand/30 rounded-xl p-6">
+            <h3 className="text-lg font-bold text-cyan-brand mb-1">Ofertas para el Lote seleccionado</h3>
+            <p className="text-xs text-ink-soft mb-4">Lote ID: {loteSeleccionado.id.slice(0, 8)}... ({loteSeleccionado.toneladas} Tons)</p>
 
             {cargandoOfertas ? (
-              <p className="text-sm text-slate-400">Buscando en la base de datos...</p>
+              <p className="text-sm text-ink-soft">Buscando en la base de datos...</p>
             ) : ofertasRecibidas.length === 0 ? (
-              <p className="text-sm text-slate-500">Ningún comprador ha ofertado por este lote todavía.</p>
+              <p className="text-sm text-ink-soft">Ningún comprador ha ofertado por este lote todavía.</p>
             ) : (
               <div className="space-y-3">
                 {ofertasRecibidas.map((of) => (
-                  <div key={of.id} className="bg-slate-950 border border-slate-800 rounded-lg p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                  <div key={of.id} className="bg-white border border-line rounded-lg p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                     <div>
-                      <p className="text-xs text-slate-400">Comprador: <span className="text-slate-200 font-medium">{of.comprador_email}</span></p>
-                      <p className="text-lg font-bold text-emerald-400">${of.monto_ofertado.toLocaleString()} USD</p>
-                      <p className="text-xs uppercase tracking-wider font-semibold text-slate-500 mt-0.5">Estado: {of.estatus}</p>
+                      <p className="text-xs text-ink-soft">Comprador: <span className="text-ink font-medium">{of.comprador_email}</span></p>
+                      <p className="text-lg font-bold text-emerald-600">${of.monto_ofertado.toLocaleString()} USD</p>
+                      <p className="text-xs uppercase tracking-wider font-semibold text-ink-soft mt-0.5">Estado: {of.estatus}</p>
                     </div>
                     {of.estatus === "pendiente" && (
                       <div className="flex gap-2">
-                        <button onClick={() => resolverOferta(of.id, "rechazar")} className="bg-rose-950/40 text-rose-400 hover:bg-rose-900/50 border border-rose-800/60 text-xs font-bold py-1.5 px-3 rounded-lg transition-colors">
+                        <button onClick={() => resolverOferta(of.id, "rechazar")} className="bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 text-xs font-bold py-1.5 px-3 rounded-lg transition-colors">
                           Rechazar
                         </button>
-                        <button onClick={() => resolverOferta(of.id, "aceptar")} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold py-1.5 px-3 rounded-lg transition-colors">
+                        <button onClick={() => resolverOferta(of.id, "aceptar")} className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition-colors">
                           Aceptar
                         </button>
                       </div>

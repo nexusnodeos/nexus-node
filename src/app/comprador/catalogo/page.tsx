@@ -283,32 +283,32 @@ export default function BuyerCatalogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-slate-100 p-6 md:p-10 font-sans grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="min-h-screen bg-white text-ink p-6 md:p-10 font-sans grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2">
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-white flex items-center gap-3">
-              <span className="text-blue-500">Nexus</span> Catálogo de Lotes Verificados
+            <h1 className="text-2xl md:text-3xl font-extrabold text-ink flex items-center gap-3">
+              <span className="text-cyan-brand">Nexus</span> Catálogo de Lotes Verificados
             </h1>
-            <p className="text-xs md:text-sm text-slate-400 mt-1">
+            <p className="text-xs md:text-sm text-ink-soft mt-1">
               Lotes auditados con forensia digital, validación minera y ensayo de laboratorio.
             </p>
           </div>
-          <div className="flex items-center gap-2 bg-[#131926] px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-            <span className={`w-2 h-2 rounded-full ${autenticado ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`}></span>
-            <span className="text-slate-300 font-mono">
+          <div className="flex items-center gap-2 bg-slate-panel px-3 py-1.5 rounded-lg border border-line text-xs">
+            <span className={`w-2 h-2 rounded-full ${autenticado ? 'bg-emerald-500 animate-pulse' : 'bg-line'}`}></span>
+            <span className="text-ink font-mono">
               {autenticado ? `Comprador: ${emailComprador}` : 'Modo Comprador — sin autenticar'}
             </span>
           </div>
         </div>
 
-        <div className="bg-[#131926] p-4 rounded-xl border border-slate-800 mb-8 flex flex-col md:flex-row gap-4 justify-between">
+        <div className="bg-slate-panel p-4 rounded-xl border border-line mb-8 flex flex-col md:flex-row gap-4 justify-between">
           <input
             type="text"
             placeholder="Buscar por código de lote o mineral..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-[#0B0F17] border border-slate-700 text-slate-200 text-xs rounded-lg px-4 py-2.5 w-full md:w-80 focus:outline-none focus:border-blue-500"
+            className="bg-white border border-line text-ink text-xs rounded-lg px-4 py-2.5 w-full md:w-80 focus:outline-none focus:border-cyan-brand"
           />
           <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
             {['ALL', 'Cobre', 'Oro', 'Litio'].map((mineral) => (
@@ -317,8 +317,8 @@ export default function BuyerCatalogPage() {
                 onClick={() => setSelectedMineral(mineral)}
                 className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
                   selectedMineral === mineral
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-[#0B0F17] text-slate-400 hover:border-slate-600 border border-slate-800'
+                    ? 'bg-cyan-brand text-white'
+                    : 'bg-white text-ink-soft hover:border-line border border-line'
                 }`}
               >
                 {mineral === 'ALL' ? 'Todos' : mineral}
@@ -328,56 +328,56 @@ export default function BuyerCatalogPage() {
         </div>
 
         {cargando ? (
-          <div className="text-center py-12 text-slate-400 text-sm">Cargando catálogo...</div>
+          <div className="text-center py-12 text-ink-soft text-sm">Cargando catálogo...</div>
         ) : filteredLots.length === 0 ? (
-          <div className="text-center py-12 bg-[#131926] rounded-xl border border-slate-800 text-slate-400 text-sm">
+          <div className="text-center py-12 bg-slate-panel rounded-xl border border-line text-ink-soft text-sm">
             No hay lotes verificados disponibles en este momento.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredLots.map((lote) => (
-              <div key={lote.id} className="bg-[#131926] border border-slate-800 hover:border-slate-700 rounded-xl p-5 flex flex-col justify-between transition-all">
+              <div key={lote.id} className="bg-slate-panel border border-line hover:border-line rounded-xl p-5 flex flex-col justify-between transition-all">
                 <div>
                   <div className="flex justify-between items-start mb-3">
-                    <span className="text-[10px] font-mono bg-blue-950/80 text-blue-400 border border-blue-800/50 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-mono bg-cyan-brand/10 text-cyan-brand border border-cyan-brand/30 px-2 py-0.5 rounded">
                       LOT-{lote.id.slice(0, 8).toUpperCase()}
                     </span>
-                    <span className="text-[10px] font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-800/50 px-2 py-0.5 rounded flex items-center gap-1">
+                    <span className="text-[10px] font-mono bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded flex items-center gap-1">
                       {lote.antifraud_score != null ? `✓ Score ${lote.antifraud_score}/100` : 'Score pendiente (Agente SDR)'}
                     </span>
                   </div>
-                  <h3 className="text-base font-bold text-white mb-1">{lote.mineral}</h3>
-                  <p className="text-xs text-slate-400 mb-4">{lote.puerto_origen}{lote.pais ? `, ${lote.pais}` : ''}</p>
-                  <div className="bg-[#0B0F17] rounded-lg p-3 border border-slate-800/80 space-y-2 mb-4 text-xs font-mono">
-                    <div className="flex justify-between text-slate-300">
-                      <span className="text-slate-500">Ley / Pureza:</span>
-                      <span className="text-emerald-400 font-bold">{lote.pureza_porcentaje}%</span>
+                  <h3 className="text-base font-bold text-ink mb-1">{lote.mineral}</h3>
+                  <p className="text-xs text-ink-soft mb-4">{lote.puerto_origen}{lote.pais ? `, ${lote.pais}` : ''}</p>
+                  <div className="bg-white rounded-lg p-3 border border-line space-y-2 mb-4 text-xs font-mono">
+                    <div className="flex justify-between text-ink">
+                      <span className="text-ink-soft">Ley / Pureza:</span>
+                      <span className="text-emerald-600 font-bold">{lote.pureza_porcentaje}%</span>
                     </div>
-                    <div className="flex justify-between text-slate-300">
-                      <span className="text-slate-500">Volumen:</span>
+                    <div className="flex justify-between text-ink">
+                      <span className="text-ink-soft">Volumen:</span>
                       <span>{Number(lote.toneladas).toLocaleString()} Ton</span>
                     </div>
-                    <div className="flex justify-between text-slate-300">
-                      <span className="text-slate-500">Laboratorio:</span>
+                    <div className="flex justify-between text-ink">
+                      <span className="text-ink-soft">Laboratorio:</span>
                       <span>{lote.laboratorio || 'Pendiente de verificación'}</span>
                     </div>
                     {lote.tiene_exclusividad && (
-                      <div className="flex justify-between text-amber-400">
+                      <div className="flex justify-between text-amber-600">
                         <span>🔒 Exclusividad 72h activa</span>
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
+                <div className="pt-3 border-t border-line flex justify-between items-center">
                   <div>
-                    <span className="text-[10px] text-slate-500 block">Precio publicado</span>
-                    <span className="text-sm font-bold text-slate-200">
+                    <span className="text-[10px] text-ink-soft block">Precio publicado</span>
+                    <span className="text-sm font-bold text-ink">
                       ${Number(lote.precio_publicado_usd ?? lote.precio_usd).toLocaleString()} USD
                     </span>
                   </div>
                   <button
                     onClick={() => handleOpenReserveModal(lote)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-2 rounded-lg font-semibold transition shadow-lg shadow-blue-600/20"
+                    className="bg-cyan-brand hover:bg-gold-brand text-white text-xs px-4 py-2 rounded-lg font-semibold transition shadow-lg shadow-cyan-brand/20"
                   >
                     Reservar Lote
                   </button>
@@ -391,34 +391,34 @@ export default function BuyerCatalogPage() {
       {/* SIDEBAR DERECHO: PERFIL DE COMPRADOR + MIS OFERTAS */}
       <div className="space-y-6">
         {/* PERFIL DE COMPRADOR / AUTENTICACIÓN */}
-        <div className="bg-[#131926] border border-slate-800 rounded-xl p-6 h-fit">
-          <h2 className="text-lg font-bold text-slate-200 mb-3">Tu Perfil de Comprador</h2>
+        <div className="bg-slate-panel border border-line rounded-xl p-6 h-fit">
+          <h2 className="text-lg font-bold text-ink mb-3">Tu Perfil de Comprador</h2>
 
           {!autenticado ? (
             <>
-              <p className="text-xs text-slate-400 mb-3">
+              <p className="text-xs text-ink-soft mb-3">
                 Autentícate como comprador para reservar lotes y para que el Agente Matchmaker
                 pueda calificarte automáticamente contra nuevos lotes que se publiquen.
               </p>
               <button
                 onClick={manejarAutenticacionComprador}
                 disabled={autenticando}
-                className="w-full py-2.5 px-4 rounded-lg font-semibold border bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200 text-xs transition-colors"
+                className="w-full py-2.5 px-4 rounded-lg font-semibold border bg-slate-panel border-line hover:bg-line text-ink text-xs transition-colors"
               >
                 {autenticando ? 'Conectando...' : '⚡ Autenticar como Comprador de Prueba'}
               </button>
             </>
           ) : (
             <>
-              <p className="text-xs text-emerald-400 font-semibold mb-4">✓ Conectado como {emailComprador}</p>
-              <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <p className="text-xs text-emerald-600 font-semibold mb-4">✓ Conectado como {emailComprador}</p>
+              <h3 className="text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-2">
                 Criterios de Compra (alimentan al Matchmaker)
               </h3>
               <div className="space-y-2 mb-3">
                 <select
                   value={criterios.mineral_preferido}
                   onChange={(e) => setCriterios({ ...criterios, mineral_preferido: e.target.value })}
-                  className="w-full bg-[#0B0F17] border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2"
+                  className="w-full bg-white border border-line text-ink text-xs rounded-lg px-3 py-2"
                 >
                   <option value="Cobre (Concentrado)">Cobre (Concentrado)</option>
                   <option value="Oro">Oro</option>
@@ -429,27 +429,27 @@ export default function BuyerCatalogPage() {
                   placeholder="Volumen mínimo (Ton)"
                   value={criterios.volumen_minimo_toneladas}
                   onChange={(e) => setCriterios({ ...criterios, volumen_minimo_toneladas: e.target.value })}
-                  className="w-full bg-[#0B0F17] border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2"
+                  className="w-full bg-white border border-line text-ink text-xs rounded-lg px-3 py-2"
                 />
                 <input
                   type="number"
                   placeholder="Pureza mínima (%)"
                   value={criterios.pureza_minima_porcentaje}
                   onChange={(e) => setCriterios({ ...criterios, pureza_minima_porcentaje: e.target.value })}
-                  className="w-full bg-[#0B0F17] border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2"
+                  className="w-full bg-white border border-line text-ink text-xs rounded-lg px-3 py-2"
                 />
                 <input
                   type="number"
                   placeholder="Presupuesto máximo (USD)"
                   value={criterios.presupuesto_maximo_usd}
                   onChange={(e) => setCriterios({ ...criterios, presupuesto_maximo_usd: e.target.value })}
-                  className="w-full bg-[#0B0F17] border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2"
+                  className="w-full bg-white border border-line text-ink text-xs rounded-lg px-3 py-2"
                 />
               </div>
               <button
                 onClick={guardarCriterios}
                 disabled={guardandoCriterios}
-                className="w-full py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition"
+                className="w-full py-2 rounded-lg text-xs font-bold bg-cyan-brand hover:bg-gold-brand text-white transition"
               >
                 {guardandoCriterios ? 'Guardando...' : criteriosGuardados ? 'Actualizar Criterios' : 'Guardar Criterios'}
               </button>
@@ -458,32 +458,32 @@ export default function BuyerCatalogPage() {
         </div>
 
         {/* MIS OFERTAS ENVIADAS */}
-        <div className="bg-[#131926] border border-slate-800 rounded-xl p-6 h-fit">
-          <h2 className="text-xl font-bold text-slate-200 mb-4">Mis Ofertas Enviadas</h2>
+        <div className="bg-slate-panel border border-line rounded-xl p-6 h-fit">
+          <h2 className="text-xl font-bold text-ink mb-4">Mis Ofertas Enviadas</h2>
           {!autenticado ? (
-            <p className="text-sm text-slate-500">Autentícate para ver tus ofertas.</p>
+            <p className="text-sm text-ink-soft">Autentícate para ver tus ofertas.</p>
           ) : cargando ? (
-            <p className="text-sm text-slate-500">Cargando tus ofertas...</p>
+            <p className="text-sm text-ink-soft">Cargando tus ofertas...</p>
           ) : misOfertas.length === 0 ? (
-            <p className="text-sm text-slate-500">Aún no has enviado ofertas de compra.</p>
+            <p className="text-sm text-ink-soft">Aún no has enviado ofertas de compra.</p>
           ) : (
             <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
               {misOfertas.map((of) => (
-                <div key={of.id} className="bg-[#0B0F17] border border-slate-800 rounded-lg p-4">
+                <div key={of.id} className="bg-white border border-line rounded-lg p-4">
                   <div className="flex justify-between items-start mb-2">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full uppercase ${
-                      of.estatus === 'aceptada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                      of.estatus === 'rechazada' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-                      'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                      of.estatus === 'aceptada' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+                      of.estatus === 'rechazada' ? 'bg-rose-50 text-rose-600 border border-rose-200' :
+                      'bg-amber-50 text-amber-600 border border-amber-200'
                     }`}>
                       {of.estatus === 'aceptada' ? '✓ Ganada' : of.estatus === 'rechazada' ? '✗ Rechazada' : '⏳ Pendiente'}
                     </span>
-                    <span className="text-[10px] text-slate-500">{new Date(of.creado_en).toLocaleDateString()}</span>
+                    <span className="text-[10px] text-ink-soft">{new Date(of.creado_en).toLocaleDateString()}</span>
                   </div>
-                  <p className="text-sm font-medium text-slate-300">
+                  <p className="text-sm font-medium text-ink">
                     {of.lotes?.mineral || 'N/A'} — {of.lotes?.toneladas || 0} Tons en {of.lotes?.puerto_origen || 'N/A'}
                   </p>
-                  <p className="text-md font-bold text-emerald-400 mt-1">${Number(of.monto_ofertado).toLocaleString()} USD</p>
+                  <p className="text-md font-bold text-emerald-600 mt-1">${Number(of.monto_ofertado).toLocaleString()} USD</p>
                 </div>
               ))}
             </div>
@@ -494,51 +494,51 @@ export default function BuyerCatalogPage() {
       {/* MODAL DE RESERVA */}
       {selectedLot && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#131926] border border-slate-800 rounded-2xl max-w-lg w-full p-6 relative">
+          <div className="bg-slate-panel border border-line rounded-2xl max-w-lg w-full p-6 relative">
             <button
               onClick={() => setSelectedLot(null)}
-              className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 text-sm font-mono"
+              className="absolute top-4 right-4 text-ink-soft hover:text-ink text-sm font-mono"
             >
               ✕
             </button>
             {modalStep === 'REQUIREMENTS' && (
               <div>
                 <div className="mb-4">
-                  <span className="text-[10px] font-mono text-blue-400 uppercase tracking-widest">Protocolo de Acceso</span>
-                  <h2 className="text-lg font-bold text-white mt-1">Requisitos para Reservar LOT-{selectedLot.id.slice(0, 8).toUpperCase()}</h2>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <span className="text-[10px] font-mono text-cyan-brand uppercase tracking-widest">Protocolo de Acceso</span>
+                  <h2 className="text-lg font-bold text-ink mt-1">Requisitos para Reservar LOT-{selectedLot.id.slice(0, 8).toUpperCase()}</h2>
+                  <p className="text-xs text-ink-soft mt-1">
                     Para proteger la confidencialidad de la mina y liberar la Ficha Técnica Cegada, completa las siguientes validaciones:
                   </p>
                 </div>
                 <div className="space-y-3 mb-4">
-                  <div className={`p-3 rounded-lg border flex justify-between items-center ${hasSignedNCNDA ? 'bg-emerald-950/30 border-emerald-800/50' : 'bg-[#0B0F17] border-slate-800'}`}>
+                  <div className={`p-3 rounded-lg border flex justify-between items-center ${hasSignedNCNDA ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-line'}`}>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-200">1. Acuerdo NCNDA Digital</h4>
-                      <p className="text-[11px] text-slate-400">Protección de no circunvención comercial.</p>
+                      <h4 className="text-xs font-bold text-ink">1. Acuerdo NCNDA Digital</h4>
+                      <p className="text-[11px] text-ink-soft">Protección de no circunvención comercial.</p>
                     </div>
                     {hasSignedNCNDA ? (
-                      <span className="text-xs text-emerald-400 font-bold">✓ Firmado</span>
+                      <span className="text-xs text-emerald-600 font-bold">✓ Firmado</span>
                     ) : (
-                      <button onClick={() => setHasSignedNCNDA(true)} className="text-xs bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 px-3 py-1 rounded">
+                      <button onClick={() => setHasSignedNCNDA(true)} className="text-xs bg-slate-panel hover:bg-line text-cyan-brand border border-line px-3 py-1 rounded">
                         Firmar
                       </button>
                     )}
                   </div>
-                  <div className={`p-3 rounded-lg border flex justify-between items-center ${hasUploadedPOF ? 'bg-emerald-950/30 border-emerald-800/50' : 'bg-[#0B0F17] border-slate-800'}`}>
+                  <div className={`p-3 rounded-lg border flex justify-between items-center ${hasUploadedPOF ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-line'}`}>
                     <div>
-                      <h4 className="text-xs font-bold text-slate-200">2. Prueba de Fondos (POF)</h4>
-                      <p className="text-[11px] text-slate-400">Acreditación de liquidez bancaria para compra.</p>
+                      <h4 className="text-xs font-bold text-ink">2. Prueba de Fondos (POF)</h4>
+                      <p className="text-[11px] text-ink-soft">Acreditación de liquidez bancaria para compra.</p>
                     </div>
                     {hasUploadedPOF ? (
-                      <span className="text-xs text-emerald-400 font-bold">✓ Cargado</span>
+                      <span className="text-xs text-emerald-600 font-bold">✓ Cargado</span>
                     ) : (
-                      <button onClick={() => setHasUploadedPOF(true)} className="text-xs bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 px-3 py-1 rounded">
+                      <button onClick={() => setHasUploadedPOF(true)} className="text-xs bg-slate-panel hover:bg-line text-cyan-brand border border-line px-3 py-1 rounded">
                         Adjuntar
                       </button>
                     )}
                   </div>
                 </div>
-                <p className="text-[10px] text-slate-500 mb-3">
+                <p className="text-[10px] text-ink-soft mb-3">
                   Nota piloto: firma y adjunto todavía son un gate de UI (Tareas 2.1/2.2 — firma digital real —
                   aún no construidas). La oferta que se registra al confirmar sí es real en Supabase, ligada a tu
                   cuenta autenticada de comprador.
@@ -548,8 +548,8 @@ export default function BuyerCatalogPage() {
                   onClick={confirmarReserva}
                   className={`w-full py-2.5 rounded-lg text-xs font-bold transition ${
                     hasSignedNCNDA && hasUploadedPOF
-                      ? 'bg-blue-600 hover:bg-blue-500 text-white cursor-pointer'
-                      : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                      ? 'bg-cyan-brand hover:bg-gold-brand text-white cursor-pointer'
+                      : 'bg-slate-panel text-ink-soft cursor-not-allowed'
                   }`}
                 >
                   {enviandoOferta ? 'Confirmando...' : hasSignedNCNDA && hasUploadedPOF ? 'Confirmar Reserva de 72 Horas' : 'Completa los requisitos para continuar'}
@@ -558,13 +558,13 @@ export default function BuyerCatalogPage() {
             )}
             {modalStep === 'SUCCESS' && (
               <div className="text-center py-4">
-                <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">✓</div>
-                <h2 className="text-base font-bold text-white mb-2">¡Oferta Registrada!</h2>
-                <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-                  Tu oferta por el lote <strong className="text-slate-200">LOT-{selectedLot.id.slice(0, 8).toUpperCase()}</strong> quedó
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">✓</div>
+                <h2 className="text-base font-bold text-ink mb-2">¡Oferta Registrada!</h2>
+                <p className="text-xs text-ink-soft mb-6 leading-relaxed">
+                  Tu oferta por el lote <strong className="text-ink">LOT-{selectedLot.id.slice(0, 8).toUpperCase()}</strong> quedó
                   registrada en Supabase. El minero la verá en su panel para aceptar o rechazar.
                 </p>
-                <button onClick={() => setSelectedLot(null)} className="bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 font-semibold px-6 py-2 rounded-lg border border-slate-700">
+                <button onClick={() => setSelectedLot(null)} className="bg-slate-panel hover:bg-line text-xs text-ink font-semibold px-6 py-2 rounded-lg border border-line">
                   Entendido
                 </button>
               </div>
