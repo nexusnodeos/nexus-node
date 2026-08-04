@@ -311,7 +311,7 @@ export default function BuyerCatalogPage() {
             className="bg-[#0B0F17] border border-slate-700 text-slate-200 text-xs rounded-lg px-4 py-2.5 w-full md:w-80 focus:outline-none focus:border-blue-500"
           />
           <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-            {['ALL', 'Cobre', 'Oro', 'Litio'].map((mineral) => (
+            {['ALL', 'Cobre'].map((mineral) => (
               <button
                 key={mineral}
                 onClick={() => setSelectedMineral(mineral)}
@@ -421,8 +421,6 @@ export default function BuyerCatalogPage() {
                   className="w-full bg-[#0B0F17] border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2"
                 >
                   <option value="Cobre (Concentrado)">Cobre (Concentrado)</option>
-                  <option value="Oro">Oro</option>
-                  <option value="Litio">Litio</option>
                 </select>
                 <input
                   type="number"
