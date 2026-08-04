@@ -112,11 +112,13 @@ function Reveal({
 
 function PlaceholderPhoto({
   label,
+  image,
   deep = false,
   className = "",
   style,
 }: {
   label: string;
+  image?: string;
   deep?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -125,7 +127,9 @@ function PlaceholderPhoto({
     <div
       className={`relative flex items-end overflow-hidden rounded-[28px] p-5 ${className}`}
       style={{
-        background: deep
+        background: image
+          ? `linear-gradient(0deg, rgba(20,12,6,0.55), rgba(20,12,6,0.05) 55%), url(${image}) center/cover no-repeat`
+          : deep
           ? `linear-gradient(150deg, #E7CBAE, #B97D46 58%, ${C.copperDark})`
           : `linear-gradient(150deg, #F3D9BC, #D99B5E 58%, ${C.copper})`,
         ...style,
@@ -133,7 +137,7 @@ function PlaceholderPhoto({
     >
       <span
         className="rounded-full px-3 py-1.5 text-[12px] font-medium tracking-wide"
-        style={{ background: "rgba(255,255,255,0.85)", color: C.ink, fontFamily: "var(--font-sans)" }}
+        style={{ background: "rgba(255,255,255,0.9)", color: C.ink, fontFamily: "var(--font-sans)" }}
       >
         {label}
       </span>
@@ -273,9 +277,21 @@ function Hero() {
       </div>
 
       <FadeUp delayMs={400} className="mx-auto mt-14 grid max-w-5xl grid-cols-2 gap-4 md:grid-cols-3">
-        <PlaceholderPhoto label="Cátodo grado A — 99.95%" className="col-span-2 h-[220px] md:col-span-1 md:h-[320px]" />
-        <PlaceholderPhoto label="Puerto de Manzanillo" deep className="h-[220px] md:h-[320px]" />
-        <PlaceholderPhoto label="Certificado SGS" className="col-span-2 h-[180px] md:col-span-1 md:h-[320px]" />
+        <PlaceholderPhoto
+          label="Cátodo grado A — 99.95%"
+          image="https://images.unsplash.com/photo-1756428785265-aed1117cd42b?auto=format&fit=crop&w=1200&q=70"
+          className="col-span-2 h-[220px] md:col-span-1 md:h-[320px]"
+        />
+        <PlaceholderPhoto
+          label="Puerto de Manzanillo"
+          image="https://images.unsplash.com/photo-1511578194003-00c80e42dc9b?auto=format&fit=crop&w=1200&q=70"
+          className="h-[220px] md:h-[320px]"
+        />
+        <PlaceholderPhoto
+          label="Certificado SGS"
+          image="https://images.unsplash.com/photo-1763729805496-b5dbf7f00c79?auto=format&fit=crop&w=1200&q=70"
+          className="col-span-2 h-[180px] md:col-span-1 md:h-[320px]"
+        />
       </FadeUp>
     </div>
   );

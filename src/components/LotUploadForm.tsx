@@ -101,34 +101,34 @@ export default function LotUploadForm({ onSuccess }: LotUploadFormProps) {
   return (
     <form onSubmit={manejarRegistroLote} className="space-y-4">
       <div>
-        <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Toneladas</label>
-        <input type="number" required value={toneladas} onChange={(e) => setToneladas(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500" placeholder="Ej. 500" />
+        <label className="block text-xs font-semibold text-[#75604F] uppercase mb-1">Toneladas</label>
+        <input type="number" required value={toneladas} onChange={(e) => setToneladas(e.target.value)} className="w-full bg-white border border-[#E9DFD2] rounded-lg px-3 py-2 text-[#241A14] focus:outline-none focus:border-[#B15A2A]" placeholder="Ej. 500" />
       </div>
       <div>
-        <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Pureza (%)</label>
-        <input type="number" step="0.1" required value={pureza} onChange={(e) => setPureza(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500" placeholder="Ej. 99.4" />
+        <label className="block text-xs font-semibold text-[#75604F] uppercase mb-1">Pureza (%)</label>
+        <input type="number" step="0.1" required value={pureza} onChange={(e) => setPureza(e.target.value)} className="w-full bg-white border border-[#E9DFD2] rounded-lg px-3 py-2 text-[#241A14] focus:outline-none focus:border-[#B15A2A]" placeholder="Ej. 99.4" />
       </div>
       <div>
-        <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Puerto de Origen</label>
-        <select value={puerto} onChange={(e) => setPuerto(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500">
+        <label className="block text-xs font-semibold text-[#75604F] uppercase mb-1">Puerto de Origen</label>
+        <select value={puerto} onChange={(e) => setPuerto(e.target.value)} className="w-full bg-white border border-[#E9DFD2] rounded-lg px-3 py-2 text-[#241A14] focus:outline-none focus:border-[#B15A2A]">
           <option value="Manzanillo">Manzanillo</option>
           <option value="Lázaro Cárdenas">Lázaro Cárdenas</option>
           <option value="Veracruz">Veracruz</option>
         </select>
       </div>
       <div>
-        <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Precio Deseado (USD)</label>
-        <input type="number" required value={precio} onChange={(e) => setPrecio(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500" placeholder="Ej. 3500000" />
+        <label className="block text-xs font-semibold text-[#75604F] uppercase mb-1">Precio Deseado (USD)</label>
+        <input type="number" required value={precio} onChange={(e) => setPrecio(e.target.value)} className="w-full bg-white border border-[#E9DFD2] rounded-lg px-3 py-2 text-[#241A14] focus:outline-none focus:border-[#B15A2A]" placeholder="Ej. 3500000" />
       </div>
 
-      <div className="border-t border-slate-800 pt-4">
-        <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">Documentos de Certificación</label>
+      <div className="border-t border-[#E9DFD2] pt-4">
+        <label className="block text-xs font-semibold text-[#75604F] uppercase mb-2">Documentos de Certificación</label>
 
         <div className="flex gap-2 mb-3">
           <select
             value={tipoSeleccionado}
             onChange={(e) => setTipoSeleccionado(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-2 text-slate-100 text-sm focus:outline-none focus:border-amber-500"
+            className="bg-white border border-[#E9DFD2] rounded-lg px-2 py-2 text-[#241A14] text-sm focus:outline-none focus:border-[#B15A2A]"
           >
             {TIPOS_DOCUMENTO.map((t) => (
               <option key={t.value} value={t.value}>
@@ -137,7 +137,7 @@ export default function LotUploadForm({ onSuccess }: LotUploadFormProps) {
             ))}
           </select>
 
-          <label className="flex items-center gap-2 bg-amber-950/30 border border-amber-500/40 text-amber-400 rounded-lg px-3 py-2 text-sm cursor-pointer hover:bg-amber-900/40 whitespace-nowrap">
+          <label className="flex items-center gap-2 bg-[#F7E5D3] border border-[#B15A2A]/40 text-[#8C4620] rounded-lg px-3 py-2 text-sm cursor-pointer hover:bg-[#F0D5BC] whitespace-nowrap">
             + Adjuntar archivo
             <input
               type="file"
@@ -153,11 +153,11 @@ export default function LotUploadForm({ onSuccess }: LotUploadFormProps) {
 
         <div className="space-y-2">
           {archivos.map((a, i) => (
-            <div key={i} className="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-lg px-3 py-2">
-              <span className="text-xs text-slate-300 truncate">
-                {a.file.name} <span className="text-slate-500">({TIPOS_DOCUMENTO.find((t) => t.value === a.tipo)?.label})</span>
+            <div key={i} className="flex items-center justify-between bg-white border border-[#E9DFD2] rounded-lg px-3 py-2">
+              <span className="text-xs text-[#241A14] truncate">
+                {a.file.name} <span className="text-[#8A7561]">({TIPOS_DOCUMENTO.find((t) => t.value === a.tipo)?.label})</span>
               </span>
-              <button type="button" onClick={() => quitarArchivo(i)} className="text-slate-500 hover:text-rose-400 text-xs font-bold px-2">
+              <button type="button" onClick={() => quitarArchivo(i)} className="text-[#8A7561] hover:text-rose-600 text-xs font-bold px-2">
                 ×
               </button>
             </div>
@@ -165,7 +165,7 @@ export default function LotUploadForm({ onSuccess }: LotUploadFormProps) {
         </div>
       </div>
 
-      <button type="submit" disabled={registrando} className="w-full bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50">
+      <button type="submit" disabled={registrando} className="w-full bg-[#B15A2A] hover:bg-[#8C4620] text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50">
         {registrando ? "Registrando..." : "Registrar Lote"}
       </button>
     </form>
