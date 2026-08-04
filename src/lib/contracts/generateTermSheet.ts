@@ -21,27 +21,37 @@ interface DatosTermSheet {
   mineroNombreEmpresa: string;
   compradorEmail: string;
   montoOfertado: number;
-  estatusOferta: string;
+  estatusLote: string;
 }
 
 async function obtenerDatosDeal(loteId: string): Promise<DatosTermSheet> {
   const { data: lote, error: errorLote } = await supabaseAdmin
     .from("lotes")
-    .select("id, toneladas, pureza_porcentaje, puerto_origen, precio_usd, perfiles!lotes_minero_id_fkey(nombre_empresa)")
+    .select(
+      "id, toneladas, pureza_porcentaje, puerto_origen, precio_usd, comprador_id, estatus, perfiles!lotes_minero_id_fkey(nombre_empresa)"
+    )
     .eq("id", loteId)
     .single();
 
   if (errorLote || !lote) throw new Error(`Lote ${loteId} no encontrado`);
 
-  const { data: oferta, error: errorOferta } = await supabaseAdmin
-    .from("ofertas")
-    .select("comprador_email, monto_ofertado, estatus")
+  // Modelo nuevo (2026-08-03): ya NO se valida contra la tabla ofertas (obsoleta).
+  // El term sheet solo tiene sentido si ya hay un comprador asignado al lote
+  // (via matches / lotes.comprador_id), sin importar si el trato ya se completó
+  // del todo o sigue en curso.
+  if (!lote.comprador_id) {
+    throw new Error(`El lote ${loteId} todavía no tiene comprador asignado`);
+  }
+
+  const { data: escrow, error: errorEscrow } = await supabaseAdmin
+    .from("escrow_transactions")
+    .select("comprador_email, monto_bruto")
     .eq("lote_id", loteId)
     .order("creado_en", { ascending: false })
     .limit(1)
     .single();
 
-  if (errorOferta || !oferta) throw new Error(`No hay ninguna oferta registrada para el lote ${loteId}`);
+  if (errorEscrow || !escrow) throw new Error(`No hay registro de escrow para el lote ${loteId}`);
 
   return {
     loteId: lote.id,
@@ -50,9 +60,9 @@ async function obtenerDatosDeal(loteId: string): Promise<DatosTermSheet> {
     puertoOrigen: lote.puerto_origen,
     precioPublicado: lote.precio_usd,
     mineroNombreEmpresa: (lote as any).perfiles?.nombre_empresa ?? "N/A",
-    compradorEmail: oferta.comprador_email,
-    montoOfertado: oferta.monto_ofertado,
-    estatusOferta: oferta.estatus,
+    compradorEmail: escrow.comprador_email,
+    montoOfertado: Number(escrow.monto_bruto),
+    estatusLote: lote.estatus,
   };
 }
 
@@ -94,7 +104,7 @@ export async function generateTermSheet(loteId: string): Promise<{ path: string 
   escribirLinea("CONDICIONES PROPUESTAS", 13, true, 22);
   escribirLinea(`Precio Publicado (Referencia LME): $${datos.precioPublicado.toLocaleString()} USD`);
   escribirLinea(`Monto Ofertado: $${datos.montoOfertado.toLocaleString()} USD`);
-  escribirLinea(`Estatus de la Oferta: ${datos.estatusOferta}`, 11, false, 28);
+  escribirLinea(`Estatus del Trato: ${datos.estatusLote}`, 11, false, 28);
 
   escribirLinea("Este documento resume los términos discutidos hasta el momento y está", 9);
   escribirLinea("sujeto a la validación final, depósito en escrow y firma del contrato formal.", 9, false, 24);

@@ -33,21 +33,30 @@ async function obtenerDatosContrato(loteId: string): Promise<DatosContrato> {
   const { data: lote, error: errorLote } = await supabaseAdmin
     .from("lotes")
     .select(
-      "id, mineral, toneladas, pureza_porcentaje, puerto_origen, pais, precio_usd, precio_publicado_usd, fecha_limite_exclusividad, minero_id, perfiles!lotes_minero_id_fkey(nombre_empresa)"
+      "id, mineral, toneladas, pureza_porcentaje, puerto_origen, pais, precio_usd, precio_publicado_usd, fecha_limite_exclusividad, minero_id, comprador_id, estatus, perfiles!lotes_minero_id_fkey(nombre_empresa)"
     )
     .eq("id", loteId)
     .single();
 
   if (errorLote || !lote) throw new Error(`Lote ${loteId} no encontrado`);
 
-  const { data: oferta, error: errorOferta } = await supabaseAdmin
-    .from("ofertas")
-    .select("comprador_email, monto_ofertado, creado_en")
+  // Modelo nuevo (2026-08-03): el trato se confirma con lotes.estatus = 'completado'
+  // y lotes.comprador_id asignado — ya NO se valida contra la tabla ofertas (obsoleta).
+  if (lote.estatus !== "completado" || !lote.comprador_id) {
+    throw new Error(
+      `El lote ${loteId} no tiene un trato cerrado todavía (estatus actual: ${lote.estatus})`
+    );
+  }
+
+  const { data: escrow, error: errorEscrow } = await supabaseAdmin
+    .from("escrow_transactions")
+    .select("comprador_email, monto_bruto, creado_en")
     .eq("lote_id", loteId)
-    .eq("estatus", "aceptada")
+    .order("creado_en", { ascending: false })
+    .limit(1)
     .single();
 
-  if (errorOferta || !oferta) throw new Error(`No hay oferta aceptada para el lote ${loteId}`);
+  if (errorEscrow || !escrow) throw new Error(`No hay registro de escrow para el lote ${loteId}`);
 
   return {
     loteId: lote.id,
@@ -60,9 +69,9 @@ async function obtenerDatosContrato(loteId: string): Promise<DatosContrato> {
     precioPublicadoUsd: lote.precio_publicado_usd,
     fechaLimiteExclusividad: lote.fecha_limite_exclusividad,
     mineroNombreEmpresa: (lote as any).perfiles?.nombre_empresa ?? "N/A",
-    compradorEmail: oferta.comprador_email,
-    montoOfertado: oferta.monto_ofertado,
-    fechaOferta: oferta.creado_en,
+    compradorEmail: escrow.comprador_email,
+    montoOfertado: Number(escrow.monto_bruto),
+    fechaOferta: escrow.creado_en,
   };
 }
 
