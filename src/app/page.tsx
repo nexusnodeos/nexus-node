@@ -354,7 +354,11 @@ function PlatformSplits() {
   return (
     <section id="plataforma" className="px-[6%] pb-8">
       <Reveal className="mx-auto mb-28 grid max-w-5xl items-center gap-16 md:grid-cols-2">
-        <PlaceholderPhoto label="Documentos validados automáticamente" className="h-[340px] order-2 md:order-1" />
+        <PlaceholderPhoto
+          label="Documentos validados automáticamente"
+          image="https://images.unsplash.com/photo-1586941962765-d3896cc85ac8?auto=format&fit=crop&w=1200&q=70"
+          className="h-[340px] order-2 md:order-1"
+        />
         <div className="order-1 md:order-2">
           <p className="mb-4 text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: C.copper, fontFamily: "var(--font-sans)" }}>
             Validación por IA
@@ -392,7 +396,11 @@ function PlatformSplits() {
             partes se queda expuesta.
           </p>
         </div>
-        <PlaceholderPhoto label="Pago protegido en Escrow" deep className="h-[340px]" />
+        <PlaceholderPhoto
+          label="Pago protegido en Escrow"
+          image="https://images.unsplash.com/photo-1681505531034-8d67054e07f6?auto=format&fit=crop&w=1200&q=70"
+          className="h-[340px]"
+        />
       </Reveal>
 
       <div className="mx-auto grid max-w-5xl gap-10 md:grid-cols-3">
