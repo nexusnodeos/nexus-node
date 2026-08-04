@@ -129,7 +129,7 @@ export default function MineroPage() {
             autenticado ? "bg-emerald-950/30 border-emerald-500 text-emerald-400" : "bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200"
           }`}
         >
-          {autenticado ? "✓ Usuario de Prueba Conectado" : "⚡ Autenticar Usuario de Prueba"}
+          {autenticado ? "✓ Usuario de Prueba Conectado" : "Autenticar Usuario de Prueba"}
         </button>
 
         <LotUploadForm onSuccess={obtenerMisLotes} />

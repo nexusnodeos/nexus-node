@@ -105,7 +105,7 @@ export default function ConsolaAgentesPage() {
                         ? "bg-emerald-950 text-emerald-400 border-emerald-800 animate-pulse" 
                         : "bg-slate-950 text-slate-500 border-slate-800"
                     }`}>
-                      {lote.tiene_exclusividad ? "🔒 Exclusividad 72h Firmada" : "⏳ Sin Exclusividad"}
+                      {lote.tiene_exclusividad ? "Exclusividad 72h Firmada" : "Sin Exclusividad"}
                     </span>
                   </div>
 

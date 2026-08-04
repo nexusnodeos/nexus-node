@@ -363,7 +363,7 @@ export default function BuyerCatalogPage() {
                     </div>
                     {lote.tiene_exclusividad && (
                       <div className="flex justify-between text-amber-400">
-                        <span>🔒 Exclusividad 72h activa</span>
+                        <span>Exclusividad 72h activa</span>
                       </div>
                     )}
                   </div>
@@ -405,7 +405,7 @@ export default function BuyerCatalogPage() {
                 disabled={autenticando}
                 className="w-full py-2.5 px-4 rounded-lg font-semibold border bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200 text-xs transition-colors"
               >
-                {autenticando ? 'Conectando...' : '⚡ Autenticar como Comprador de Prueba'}
+                {autenticando ? 'Conectando...' : 'Autenticar como Comprador de Prueba'}
               </button>
             </>
           ) : (
