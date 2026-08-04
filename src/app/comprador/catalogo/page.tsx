@@ -182,6 +182,7 @@ export default function BuyerCatalogPage() {
           password: PASSWORD_PRUEBA_COMPRADOR,
           options: {
             data: { rol: 'comprador', nombre_empresa: 'Comprador Piloto (Rodrigo)' },
+            emailRedirectTo: `${window.location.origin}/comprador/catalogo`,
           },
         });
 

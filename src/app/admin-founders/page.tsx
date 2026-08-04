@@ -81,6 +81,9 @@ export default function FoundersDashboard() {
         const { error: signUpError } = await supabase.auth.signUp({
           email: FOUNDER_EMAIL,
           password: FOUNDER_PASSWORD,
+          options: {
+            emailRedirectTo: `${window.location.origin}/admin-founders`,
+          },
         });
         if (signUpError) {
           alert('Error de autenticación de fundadores: ' + signUpError.message);

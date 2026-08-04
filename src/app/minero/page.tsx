@@ -55,6 +55,12 @@ export default function MineroPage() {
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: emailPrueba,
         password: passwordPrueba,
+        options: {
+          // Usa el dominio real desde donde se ejecuta (local o producción),
+          // en vez de depender del "Site URL" fijo de la config del proyecto
+          // (que en logs reales seguía apuntando a localhost:3000).
+          emailRedirectTo: `${window.location.origin}/minero`,
+        },
       });
 
       if (signUpError) {
