@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Fraunces } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
+
+const display = Fraunces({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-display',
+});
+const displayFont = { fontFamily: 'var(--font-display)' } as const;
 
 interface Lote {
   id: string;
@@ -283,11 +292,11 @@ export default function BuyerCatalogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#241A14] p-6 md:p-10 font-body grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className={`${display.variable} min-h-screen bg-white text-[#241A14] p-6 md:p-10 font-body grid grid-cols-1 lg:grid-cols-3 gap-8`}>
       <div className="lg:col-span-2">
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-[#241A14] flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-medium text-[#241A14] flex items-center gap-3" style={displayFont}>
               <span className="text-[#B15A2A]">Nexus</span> Catálogo de Lotes Verificados
             </h1>
             <p className="text-xs md:text-sm text-[#75604F] mt-1">
@@ -308,14 +317,14 @@ export default function BuyerCatalogPage() {
             placeholder="Buscar por código de lote o mineral..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-white border border-[#E9DFD2] text-[#241A14] text-xs rounded-lg px-4 py-2.5 w-full md:w-80 focus:outline-none focus:border-[#B15A2A]"
+            className="bg-white border border-[#E9DFD2] text-[#241A14] text-xs rounded-full px-4 py-2.5 w-full md:w-80 focus:outline-none focus:border-[#B15A2A]"
           />
           <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
             {['ALL', 'Cobre'].map((mineral) => (
               <button
                 key={mineral}
                 onClick={() => setSelectedMineral(mineral)}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                className={`px-4 py-2 rounded-full text-xs font-semibold transition ${
                   selectedMineral === mineral
                     ? 'bg-[#B15A2A] text-white'
                     : 'bg-white text-[#75604F] hover:border-[#B15A2A]/40 border border-[#E9DFD2]'
@@ -346,7 +355,7 @@ export default function BuyerCatalogPage() {
                       {lote.antifraud_score != null ? `✓ Score ${lote.antifraud_score}/100` : 'Score pendiente (Agente SDR)'}
                     </span>
                   </div>
-                  <h3 className="text-base font-bold text-[#241A14] mb-1">{lote.mineral}</h3>
+                  <h3 className="text-base font-medium text-[#241A14] mb-1" style={displayFont}>{lote.mineral}</h3>
                   <p className="text-xs text-[#75604F] mb-4">{lote.puerto_origen}{lote.pais ? `, ${lote.pais}` : ''}</p>
                   <div className="bg-white rounded-lg p-3 border border-[#E9DFD2] space-y-2 mb-4 text-xs font-mono">
                     <div className="flex justify-between text-[#75604F]">
@@ -377,7 +386,7 @@ export default function BuyerCatalogPage() {
                   </div>
                   <button
                     onClick={() => handleOpenReserveModal(lote)}
-                    className="bg-[#B15A2A] hover:bg-[#8C4620] text-white text-xs px-4 py-2 rounded-lg font-semibold transition shadow-lg shadow-[#B15A2A]/20"
+                    className="bg-[#B15A2A] hover:bg-[#8C4620] text-white text-xs px-5 py-2.5 rounded-full font-semibold transition shadow-lg shadow-[#B15A2A]/20"
                   >
                     Reservar Lote
                   </button>
@@ -392,7 +401,7 @@ export default function BuyerCatalogPage() {
       <div className="space-y-6">
         {/* PERFIL DE COMPRADOR / AUTENTICACIÓN */}
         <div className="bg-[#FBF6F0] border border-[#E9DFD2] rounded-xl p-6 h-fit">
-          <h2 className="text-lg font-bold text-[#241A14] mb-3">Tu Perfil de Comprador</h2>
+          <h2 className="text-lg font-medium text-[#241A14] mb-3" style={displayFont}>Tu Perfil de Comprador</h2>
 
           {!autenticado ? (
             <>
@@ -403,7 +412,7 @@ export default function BuyerCatalogPage() {
               <button
                 onClick={manejarAutenticacionComprador}
                 disabled={autenticando}
-                className="w-full py-2.5 px-4 rounded-lg font-semibold border bg-[#F3ECE2] border-[#E9DFD2] hover:bg-[#EADFCF] text-[#241A14] text-xs transition-colors"
+                className="w-full py-2.5 px-4 rounded-full font-semibold border bg-[#F3ECE2] border-[#E9DFD2] hover:bg-[#EADFCF] text-[#241A14] text-xs transition-colors"
               >
                 {autenticando ? 'Conectando...' : 'Autenticar como Comprador de Prueba'}
               </button>
@@ -447,7 +456,7 @@ export default function BuyerCatalogPage() {
               <button
                 onClick={guardarCriterios}
                 disabled={guardandoCriterios}
-                className="w-full py-2 rounded-lg text-xs font-bold bg-[#B15A2A] hover:bg-[#8C4620] text-white transition"
+                className="w-full py-2.5 rounded-full text-xs font-semibold bg-[#B15A2A] hover:bg-[#8C4620] text-white transition"
               >
                 {guardandoCriterios ? 'Guardando...' : criteriosGuardados ? 'Actualizar Criterios' : 'Guardar Criterios'}
               </button>
@@ -457,7 +466,7 @@ export default function BuyerCatalogPage() {
 
         {/* MIS OFERTAS ENVIADAS */}
         <div className="bg-[#FBF6F0] border border-[#E9DFD2] rounded-xl p-6 h-fit">
-          <h2 className="text-xl font-bold text-[#241A14] mb-4">Mis Ofertas Enviadas</h2>
+          <h2 className="text-xl font-medium text-[#241A14] mb-4" style={displayFont}>Mis Ofertas Enviadas</h2>
           {!autenticado ? (
             <p className="text-sm text-[#8A7561]">Autentícate para ver tus ofertas.</p>
           ) : cargando ? (
@@ -503,7 +512,7 @@ export default function BuyerCatalogPage() {
               <div>
                 <div className="mb-4">
                   <span className="text-[10px] font-mono text-[#B15A2A] uppercase tracking-widest">Protocolo de Acceso</span>
-                  <h2 className="text-lg font-bold text-[#241A14] mt-1">Requisitos para Reservar LOT-{selectedLot.id.slice(0, 8).toUpperCase()}</h2>
+                  <h2 className="text-lg font-medium text-[#241A14] mt-1" style={displayFont}>Requisitos para Reservar LOT-{selectedLot.id.slice(0, 8).toUpperCase()}</h2>
                   <p className="text-xs text-[#75604F] mt-1">
                     Para proteger la confidencialidad de la mina y liberar la Ficha Técnica Cegada, completa las siguientes validaciones:
                   </p>
@@ -517,7 +526,7 @@ export default function BuyerCatalogPage() {
                     {hasSignedNCNDA ? (
                       <span className="text-xs text-emerald-600 font-bold">✓ Firmado</span>
                     ) : (
-                      <button onClick={() => setHasSignedNCNDA(true)} className="text-xs bg-[#F3ECE2] hover:bg-[#EADFCF] text-[#B15A2A] border border-[#E9DFD2] px-3 py-1 rounded">
+                      <button onClick={() => setHasSignedNCNDA(true)} className="text-xs bg-[#F3ECE2] hover:bg-[#EADFCF] text-[#B15A2A] border border-[#E9DFD2] px-3 py-1 rounded-full">
                         Firmar
                       </button>
                     )}
@@ -530,7 +539,7 @@ export default function BuyerCatalogPage() {
                     {hasUploadedPOF ? (
                       <span className="text-xs text-emerald-600 font-bold">✓ Cargado</span>
                     ) : (
-                      <button onClick={() => setHasUploadedPOF(true)} className="text-xs bg-[#F3ECE2] hover:bg-[#EADFCF] text-[#B15A2A] border border-[#E9DFD2] px-3 py-1 rounded">
+                      <button onClick={() => setHasUploadedPOF(true)} className="text-xs bg-[#F3ECE2] hover:bg-[#EADFCF] text-[#B15A2A] border border-[#E9DFD2] px-3 py-1 rounded-full">
                         Adjuntar
                       </button>
                     )}
@@ -544,7 +553,7 @@ export default function BuyerCatalogPage() {
                 <button
                   disabled={!hasSignedNCNDA || !hasUploadedPOF || enviandoOferta}
                   onClick={confirmarReserva}
-                  className={`w-full py-2.5 rounded-lg text-xs font-bold transition ${
+                  className={`w-full py-2.5 rounded-full text-xs font-semibold transition ${
                     hasSignedNCNDA && hasUploadedPOF
                       ? 'bg-[#B15A2A] hover:bg-[#8C4620] text-white cursor-pointer'
                       : 'bg-[#F3ECE2] text-[#A8927D] cursor-not-allowed'
@@ -557,12 +566,12 @@ export default function BuyerCatalogPage() {
             {modalStep === 'SUCCESS' && (
               <div className="text-center py-4">
                 <div className="w-12 h-12 bg-emerald-500/20 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">✓</div>
-                <h2 className="text-base font-bold text-[#241A14] mb-2">¡Oferta Registrada!</h2>
+                <h2 className="text-base font-medium text-[#241A14] mb-2" style={displayFont}>¡Oferta Registrada!</h2>
                 <p className="text-xs text-[#75604F] mb-6 leading-relaxed">
                   Tu oferta por el lote <strong className="text-[#241A14]">LOT-{selectedLot.id.slice(0, 8).toUpperCase()}</strong> quedó
                   registrada en Supabase. El minero la verá en su panel para aceptar o rechazar.
                 </p>
-                <button onClick={() => setSelectedLot(null)} className="bg-[#F3ECE2] hover:bg-[#EADFCF] text-xs text-[#241A14] font-semibold px-6 py-2 rounded-lg border border-[#E9DFD2]">
+                <button onClick={() => setSelectedLot(null)} className="bg-[#F3ECE2] hover:bg-[#EADFCF] text-xs text-[#241A14] font-semibold px-6 py-2 rounded-full border border-[#E9DFD2]">
                   Entendido
                 </button>
               </div>
