@@ -1,5 +1,12 @@
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { renderizarPlantilla, RESERVA_TEMPLATE } from "../src/lib/contracts/plantillas";
+import { sanearContraInyeccionLlaves, sanearParaWinAnsi } from "../src/lib/contracts/sanitizacionPdf";
+
+// NOTA (fix 2026-08-04): este script antes probaba renderizarPlantilla() en
+// crudo, sin pasar por el saneamiento que ahora sí aplica generarContratoPdf.ts
+// en producción. Se actualizó para ejercitar el pipeline REAL (sanear -> 
+// renderizar -> sanear WinAnsi -> dibujar), para que siga siendo una prueba
+// de regresión fiel a lo que corre en producción.
 
 interface CasoPrueba {
   nombre: string;
@@ -35,15 +42,25 @@ const CASOS: CasoPrueba[] = [
 
 async function probarCaso(caso: CasoPrueba) {
   try {
-    const textoRenderizado = renderizarPlantilla(RESERVA_TEMPLATE, caso.variables);
+    // Aplica el mismo saneamiento contra inyección de llaves que
+    // construirVariables() en generarContratoPdf.ts aplica a campos de usuario.
+    const variablesSaneadas = { ...caso.variables };
+    if (typeof variablesSaneadas.vendedorIdCodificado === "string") {
+      variablesSaneadas.vendedorIdCodificado = sanearContraInyeccionLlaves(
+        variablesSaneadas.vendedorIdCodificado
+      );
+    }
+
+    const textoRenderizado = renderizarPlantilla(RESERVA_TEMPLATE, variablesSaneadas);
 
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([612, 792]);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    // Intenta dibujar el texto completo -- aqui es donde pdf-lib truena
-    // si hay caracteres fuera de WinAnsi.
-    const lineas = textoRenderizado.split("\n");
+    // Mismo saneamiento WinAnsi que generarPdfBase() aplica antes de dibujar.
+    const textoSaneado = sanearParaWinAnsi(font, textoRenderizado);
+
+    const lineas = textoSaneado.split("\n");
     let y = 740;
     for (const linea of lineas) {
       if (linea.length === 0) continue;
@@ -54,11 +71,13 @@ async function probarCaso(caso: CasoPrueba) {
 
     await pdfDoc.save();
 
-    const contieneInyeccionLlaves = /\{\{|\}\}/.test(textoRenderizado.replace(/\{\{[a-zA-Z0-9_]+\}\}/g, ""));
+    const contieneInyeccionLlaves = /\{\{|\}\}/.test(
+      textoSaneado.replace(/\{\{[a-zA-Z0-9_]+\}\}/g, "")
+    );
 
     console.log(`✅ ${caso.nombre}`);
     if (contieneInyeccionLlaves) {
-      console.log(`   ⚠️  El texto final SIGUE conteniendo {{ o }} sin resolver de una variable -- revisar salida.`);
+      console.log(`   ⚠️  El texto final SIGUE conteniendo {{ o }} sin resolver -- revisar saneamiento.`);
     }
   } catch (err) {
     console.log(`🚨 ${caso.nombre} -- FALLÓ:`);

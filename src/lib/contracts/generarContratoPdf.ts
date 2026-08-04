@@ -7,6 +7,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf
 import { createClient } from "@supabase/supabase-js";
 import { NEXUS_NODE_LEGAL_RULES } from "@/services/agents/config/rules";
 import { RESERVA_TEMPLATE, FINAL_TEMPLATE, renderizarPlantilla } from "./plantillas";
+import { sanearContraInyeccionLlaves, sanearParaWinAnsi } from "./sanitizacionPdf";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,11 +113,11 @@ function construirVariables(
 
   return {
     loteId: datos.loteId,
-    mineral: datos.mineral,
+    mineral: sanearContraInyeccionLlaves(datos.mineral),
     toneladas: datos.toneladas,
     purezaPorcentaje: datos.purezaPorcentaje,
-    puertoOrigen: datos.puertoOrigen,
-    pais: datos.pais,
+    puertoOrigen: sanearContraInyeccionLlaves(datos.puertoOrigen),
+    pais: sanearContraInyeccionLlaves(datos.pais),
     precioPublicadoUsd: (datos.precioPublicadoUsd ?? datos.precioUsd).toLocaleString(),
     montoOfertadoUsd: datos.montoOfertado.toLocaleString(),
     fechaReserva,
@@ -125,8 +126,12 @@ function construirVariables(
     pofEstatus: "Pendiente de verificación (Modo POF, Nexus-SDR-ForensicGuard)",
     vendedorIdCodificado: idVendedorCodificado(datos.loteId),
     compradorIdCodificado: idCompradorCodificado(datos.compradorEmail),
-    vendedorNombreEmpresa: identidadRevelada ? datos.mineroNombreEmpresa : idVendedorCodificado(datos.loteId),
-    compradorEmail: identidadRevelada ? datos.compradorEmail : idCompradorCodificado(datos.compradorEmail),
+    vendedorNombreEmpresa: sanearContraInyeccionLlaves(
+      identidadRevelada ? datos.mineroNombreEmpresa : idVendedorCodificado(datos.loteId)
+    ),
+    compradorEmail: sanearContraInyeccionLlaves(
+      identidadRevelada ? datos.compradorEmail : idCompradorCodificado(datos.compradorEmail)
+    ),
     periodoProteccionMeses: NEXUS_NODE_LEGAL_RULES.PERIODO_PROTECCION_MESES,
     porcentajePenalizacionTotal: NEXUS_NODE_LEGAL_RULES.PORCENTAJE_PENALIZACION_PUENTEO * 100,
     porcentajeVendedor: NEXUS_NODE_LEGAL_RULES.PORCENTAJE_MINERO * 100,
@@ -221,8 +226,12 @@ async function generarPdfBase(
   const variables = construirVariables(datos, opciones.identidadRevelada);
   const plantilla = opciones.identidadRevelada ? FINAL_TEMPLATE : RESERVA_TEMPLATE;
   const textoRenderizado = renderizarPlantilla(plantilla, variables);
+  // Ultima linea de defensa: si algun campo trae un caracter que WinAnsi no
+  // soporta (emoji, chino, cirilico, etc.), lo reemplazamos por "?" en vez de
+  // dejar que pdf-lib truene toda la generacion del contrato.
+  const textoSaneado = sanearParaWinAnsi(font, textoRenderizado);
 
-  dibujarTextoConWrap(pdfDoc, primeraPagina, font, fontBold, textoRenderizado);
+  dibujarTextoConWrap(pdfDoc, primeraPagina, font, fontBold, textoSaneado);
 
   return pdfDoc.save();
 }

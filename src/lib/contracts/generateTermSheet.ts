@@ -6,6 +6,7 @@
 // usaba "dealId", inconsistente con el resto.
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { createClient } from "@supabase/supabase-js";
+import { sanearContraInyeccionLlaves, sanearParaWinAnsi } from "./sanitizacionPdf";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,10 +58,10 @@ async function obtenerDatosDeal(loteId: string): Promise<DatosTermSheet> {
     loteId: lote.id,
     toneladas: lote.toneladas,
     purezaPorcentaje: lote.pureza_porcentaje,
-    puertoOrigen: lote.puerto_origen,
+    puertoOrigen: sanearContraInyeccionLlaves(lote.puerto_origen),
     precioPublicado: lote.precio_usd,
-    mineroNombreEmpresa: (lote as any).perfiles?.nombre_empresa ?? "N/A",
-    compradorEmail: escrow.comprador_email,
+    mineroNombreEmpresa: sanearContraInyeccionLlaves((lote as any).perfiles?.nombre_empresa ?? "N/A"),
+    compradorEmail: sanearContraInyeccionLlaves(escrow.comprador_email),
     montoOfertado: Number(escrow.monto_bruto),
     estatusLote: lote.estatus,
   };
@@ -78,11 +79,15 @@ export async function generateTermSheet(loteId: string): Promise<{ path: string 
   const margenIzq = 60;
 
   const escribirLinea = (texto: string, tamano = 11, negrita = false, salto = 20) => {
-    page.drawText(texto, {
+    const fontActual = negrita ? fontBold : font;
+    // Misma defensa que generarContratoPdf.ts: si el texto trae un caracter
+    // que WinAnsi no soporta, se reemplaza por "?" en vez de tronar el PDF.
+    const textoSaneado = sanearParaWinAnsi(fontActual, texto);
+    page.drawText(textoSaneado, {
       x: margenIzq,
       y,
       size: tamano,
-      font: negrita ? fontBold : font,
+      font: fontActual,
       color: rgb(0.05, 0.1, 0.18),
     });
     y -= salto;
