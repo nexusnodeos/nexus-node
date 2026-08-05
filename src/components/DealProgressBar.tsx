@@ -1,11 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+
 type EstatusLote = "borrador" | "validando" | "publicado" | "en_escrow" | "completado";
 type EstatusEscrow = "PENDING" | "DEPOSITED" | "RELEASED";
 
 interface DealProgressBarProps {
-  estatus: EstatusLote;
-  estatusEscrow?: EstatusEscrow; // opcional: detalle fino cuando estatus === "en_escrow"
+  // Modo controlado (como antes): el padre pasa el estatus directo, sin Realtime.
+  estatus?: EstatusLote;
+  estatusEscrow?: EstatusEscrow;
+  // Modo en vivo (nuevo): pasando loteId, el componente jala su propio estado
+  // inicial y se suscribe a Realtime -- se actualiza solo sin que el padre
+  // tenga que volver a renderizarlo.
+  loteId?: string;
 }
 
 const PASOS: { key: EstatusLote; label: string }[] = [
@@ -22,8 +30,57 @@ const SUBLABEL_ESCROW: Record<EstatusEscrow, string> = {
   RELEASED: "Fondos liberados",
 };
 
-export default function DealProgressBar({ estatus, estatusEscrow }: DealProgressBarProps) {
-  const indiceActual = PASOS.findIndex((p) => p.key === estatus);
+export default function DealProgressBar({ estatus, estatusEscrow, loteId }: DealProgressBarProps) {
+  const [estatusEnVivo, setEstatusEnVivo] = useState<EstatusLote | undefined>(estatus);
+  const [estatusEscrowEnVivo, setEstatusEscrowEnVivo] = useState<EstatusEscrow | undefined>(estatusEscrow);
+
+  useEffect(() => {
+    if (!loteId) return; // modo controlado: no hace nada, usa los props tal cual
+
+    let activo = true;
+
+    const cargarEstadoInicial = async () => {
+      const { data: lote } = await supabase.from("lotes").select("estatus").eq("id", loteId).single();
+      if (activo && lote) setEstatusEnVivo(lote.estatus as EstatusLote);
+
+      const { data: escrow } = await supabase
+        .from("escrow_transactions")
+        .select("status")
+        .eq("lote_id", loteId)
+        .order("creado_en", { ascending: false })
+        .limit(1)
+        .single();
+      if (activo && escrow) setEstatusEscrowEnVivo(escrow.status as EstatusEscrow);
+    };
+
+    cargarEstadoInicial();
+
+    const canal = supabase
+      .channel(`deal-progress-${loteId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "lotes", filter: `id=eq.${loteId}` },
+        (payload) => setEstatusEnVivo(payload.new.estatus as EstatusLote)
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "escrow_transactions", filter: `lote_id=eq.${loteId}` },
+        (payload) => setEstatusEscrowEnVivo((payload.new as any).status as EstatusEscrow)
+      )
+      .subscribe();
+
+    return () => {
+      activo = false;
+      supabase.removeChannel(canal);
+    };
+  }, [loteId]);
+
+  const estatusFinal = loteId ? estatusEnVivo : estatus;
+  const estatusEscrowFinal = loteId ? estatusEscrowEnVivo : estatusEscrow;
+
+  if (!estatusFinal) return null; // aún cargando el estado inicial en modo loteId
+
+  const indiceActual = PASOS.findIndex((p) => p.key === estatusFinal);
 
   return (
     <div className="w-full">
@@ -52,8 +109,8 @@ export default function DealProgressBar({ estatus, estatusEscrow }: DealProgress
                 >
                   {paso.label}
                 </span>
-                {actual && paso.key === "en_escrow" && estatusEscrow && (
-                  <span className="text-[10px] text-slate-400">{SUBLABEL_ESCROW[estatusEscrow]}</span>
+                {actual && paso.key === "en_escrow" && estatusEscrowFinal && (
+                  <span className="text-[10px] text-slate-400">{SUBLABEL_ESCROW[estatusEscrowFinal]}</span>
                 )}
               </div>
 
