@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Fraunces } from "next/font/google";
 import { supabase } from "@/lib/supabase";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -100,6 +101,14 @@ function RegistroForm() {
     <>
       <h1 className="text-2xl font-medium text-[#241A14] mb-1" style={displayFont}>Crea tu cuenta</h1>
       <p className="text-sm text-[#75604F] mb-6">Con una sola cuenta puedes comprar y, cuando quieras, publicar lotes para vender.</p>
+
+      <GoogleAuthButton redirectTo={redirectTo} />
+
+      <div className="flex items-center gap-3 my-5">
+        <div className="flex-1 h-px bg-[#E9DFD2]" />
+        <span className="text-xs text-[#8A7561]">o con tu correo</span>
+        <div className="flex-1 h-px bg-[#E9DFD2]" />
+      </div>
 
       <form onSubmit={manejarRegistro} className="space-y-4">
         <div>
