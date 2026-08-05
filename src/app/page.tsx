@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Fraunces, Inter } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
@@ -128,15 +129,34 @@ function PlaceholderPhoto({
       className={`relative flex items-end overflow-hidden rounded-[28px] p-5 ${className}`}
       style={{
         background: image
-          ? `linear-gradient(0deg, rgba(20,12,6,0.55), rgba(20,12,6,0.05) 55%), url(${image}) center/cover no-repeat`
+          ? undefined
           : deep
           ? `linear-gradient(150deg, #E7CBAE, #B97D46 58%, ${C.copperDark})`
           : `linear-gradient(150deg, #F3D9BC, #D99B5E 58%, ${C.copper})`,
         ...style,
       }}
     >
+      {image && (
+        <>
+          {/* next/image: sirve WebP/AVIF y el tamaño correcto según el
+              viewport automáticamente, en vez de bajar el JPG completo de
+              Unsplash como hacía el CSS background-image de antes. */}
+          <Image
+            src={image}
+            alt={label}
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-cover"
+            priority={false}
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: "linear-gradient(0deg, rgba(20,12,6,0.55), rgba(20,12,6,0.05) 55%)" }}
+          />
+        </>
+      )}
       <span
-        className="rounded-full px-3 py-1.5 text-[12px] font-medium tracking-wide"
+        className="relative z-10 rounded-full px-3 py-1.5 text-[12px] font-medium tracking-wide"
         style={{ background: "rgba(255,255,255,0.9)", color: C.ink, fontFamily: "var(--font-sans)" }}
       >
         {label}
