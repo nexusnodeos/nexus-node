@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Fraunces } from "next/font/google";
 import { supabase } from "@/lib/supabase";
 import LotUploadForm from "@/components/LotUploadForm";
@@ -11,6 +12,7 @@ const display = Fraunces({
   style: ["normal", "italic"],
   variable: "--font-display",
 });
+const displayFont = { fontFamily: "var(--font-display)" } as const;
 
 interface Lote {
   id: string;
@@ -30,8 +32,17 @@ interface Oferta {
   estatus: string;
 }
 
+type EstadoSesion = "cargando" | "sin_sesion" | "necesita_vendedor" | "vendedor";
+
 export default function MineroPage() {
-  const [autenticado, setAutenticado] = useState(false);
+  const [estadoSesion, setEstadoSesion] = useState<EstadoSesion>("cargando");
+  const [email, setEmail] = useState<string | null>(null);
+
+  // Registro rápido para activar la capacidad de vender sobre la cuenta existente
+  const [nombreEmpresa, setNombreEmpresa] = useState("");
+  const [rfc, setRfc] = useState("");
+  const [activandoVendedor, setActivandoVendedor] = useState(false);
+  const [errorVendedor, setErrorVendedor] = useState<string | null>(null);
 
   // Estados de Lotes y Ofertas
   const [misLotes, setMisLotes] = useState<Lote[]>([]);
@@ -39,39 +50,70 @@ export default function MineroPage() {
   const [ofertasRecibidas, setOfertasRecibidas] = useState<Oferta[]>([]);
   const [cargandoOfertas, setCargandoOfertas] = useState(false);
 
-  // 1. Botón inteligente de Autenticación de Prueba
-  const manejarAutenticacionPrueba = async () => {
-    const emailPrueba = "test.user@example.com";
-    const passwordPrueba = "NexusTest123!";
+  async function evaluarSesion() {
+    const { data } = await supabase.auth.getSession();
+    const usuario = data.session?.user ?? null;
 
-    // Intentar Login
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: emailPrueba,
-      password: passwordPrueba,
-    });
-
-    if (signInError) {
-      // Si no existe, lo registramos automáticamente
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: emailPrueba,
-        password: passwordPrueba,
-        options: {
-          // Usa el dominio real desde donde se ejecuta (local o producción),
-          // en vez de depender del "Site URL" fijo de la config del proyecto
-          // (que en logs reales seguía apuntando a localhost:3000).
-          emailRedirectTo: `${window.location.origin}/minero`,
-        },
-      });
-
-      if (signUpError) {
-        alert("Error de autenticación: " + signUpError.message);
-        return;
-      }
+    if (!usuario) {
+      setEstadoSesion("sin_sesion");
+      return;
     }
 
-    setAutenticado(true);
-    alert("¡Usuario de prueba autenticado con éxito!");
-    obtenerMisLotes();
+    setEmail(usuario.email ?? null);
+
+    const { data: perfil } = await supabase
+      .from("perfiles")
+      .select("puede_vender")
+      .eq("id", usuario.id)
+      .maybeSingle();
+
+    if (perfil?.puede_vender) {
+      setEstadoSesion("vendedor");
+      obtenerMisLotes();
+    } else {
+      setEstadoSesion("necesita_vendedor");
+    }
+  }
+
+  useEffect(() => {
+    evaluarSesion();
+  }, []);
+
+  const activarVendedor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorVendedor(null);
+    if (!nombreEmpresa.trim()) return setErrorVendedor("Escribe el nombre de tu empresa.");
+
+    setActivandoVendedor(true);
+    try {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) throw new Error("No hay sesión activa.");
+
+      const { error } = await supabase
+        .from("perfiles")
+        .update({
+          puede_vender: true,
+          nombre_empresa: nombreEmpresa.trim(),
+          rfc: rfc.trim() || null,
+        })
+        .eq("id", data.user.id);
+
+      if (error) throw error;
+
+      setEstadoSesion("vendedor");
+      obtenerMisLotes();
+    } catch (err: any) {
+      setErrorVendedor(err.message || "No se pudo activar la cuenta de vendedor.");
+    } finally {
+      setActivandoVendedor(false);
+    }
+  };
+
+  const cerrarSesion = async () => {
+    await supabase.auth.signOut();
+    setEstadoSesion("sin_sesion");
+    setEmail(null);
+    setMisLotes([]);
   };
 
   // 2. Traer los lotes creados
@@ -83,10 +125,6 @@ export default function MineroPage() {
 
     if (!error && data) setMisLotes(data);
   };
-
-  useEffect(() => {
-    obtenerMisLotes();
-  }, []);
 
   // 4. Ver Ofertas de un lote específico
   const verOfertasDelLote = async (lote: Lote) => {
@@ -108,21 +146,16 @@ export default function MineroPage() {
 
     try {
       if (accion === "aceptar") {
-        // Aceptar esta oferta específica
         await supabase.from("ofertas").update({ estatus: "aceptada" }).eq("id", ofertaId);
-        // Rechazar todas las demás ofertas de este lote
         await supabase.from("ofertas").update({ estatus: "rechazada" }).eq("lote_id", loteSeleccionado.id).neq("id", ofertaId);
-        // Marcar el lote original como VENDIDO
         await supabase.from("lotes").update({ estatus: "vendido" }).eq("id", loteSeleccionado.id);
 
         alert("¡Felicidades! Oferta aceptada y lote vendido.");
       } else {
-        // Simplemente rechazar esta oferta
         await supabase.from("ofertas").update({ estatus: "rechazada" }).eq("id", ofertaId);
         alert("Oferta rechazada.");
       }
 
-      // Actualizar datos en pantalla
       obtenerMisLotes();
       setLoteSeleccionado(null);
     } catch (error) {
@@ -131,24 +164,89 @@ export default function MineroPage() {
     }
   };
 
-  const displayFont = { fontFamily: "var(--font-display)" } as const;
+  if (estadoSesion === "cargando") {
+    return <div className="min-h-screen bg-white" />;
+  }
+
+  if (estadoSesion === "sin_sesion") {
+    return (
+      <div className={`${display.variable} min-h-screen bg-white flex items-center justify-center p-6 text-center`}>
+        <div className="w-full max-w-sm bg-[#FBF6F0] border border-[#E9DFD2] rounded-2xl p-8">
+          <h1 className="text-xl font-medium text-[#241A14] mb-2" style={displayFont}>
+            Necesitas una cuenta para publicar
+          </h1>
+          <p className="text-sm text-[#75604F] mb-6">
+            Con la misma cuenta puedes comprar y vender — solo activa la parte de vendedor cuando quieras publicar tu primer lote.
+          </p>
+          <div className="flex flex-col gap-2.5">
+            <Link href="/registro?redirect=/minero" className="bg-[#B15A2A] hover:bg-[#8C4620] text-white text-sm font-medium py-3 rounded-full transition-colors">
+              Crear cuenta
+            </Link>
+            <Link href="/login?redirect=/minero" className="bg-[#F3ECE2] hover:bg-[#EADFCF] text-[#241A14] text-sm font-medium py-3 rounded-full transition-colors">
+              Ya tengo cuenta
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (estadoSesion === "necesita_vendedor") {
+    return (
+      <div className={`${display.variable} min-h-screen bg-white flex items-center justify-center p-6`}>
+        <div className="w-full max-w-sm bg-[#FBF6F0] border border-[#E9DFD2] rounded-2xl p-8">
+          <h1 className="text-xl font-medium text-[#241A14] mb-1" style={displayFont}>Conviértete en vendedor</h1>
+          <p className="text-sm text-[#75604F] mb-6">
+            Conectado como <span className="text-[#241A14] font-medium">{email}</span>. Completa esto para poder publicar lotes.
+          </p>
+          <form onSubmit={activarVendedor} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-[#75604F] uppercase mb-1">Nombre de tu empresa</label>
+              <input
+                type="text"
+                required
+                value={nombreEmpresa}
+                onChange={(e) => setNombreEmpresa(e.target.value)}
+                className="w-full bg-white border border-[#E9DFD2] rounded-xl px-3 py-2.5 text-[#241A14] focus:outline-none focus:border-[#B15A2A]"
+                placeholder="Ej. Minera del Pacífico S.A. de C.V."
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#75604F] uppercase mb-1">RFC (opcional)</label>
+              <input
+                type="text"
+                value={rfc}
+                onChange={(e) => setRfc(e.target.value)}
+                className="w-full bg-white border border-[#E9DFD2] rounded-xl px-3 py-2.5 text-[#241A14] focus:outline-none focus:border-[#B15A2A]"
+              />
+            </div>
+            {errorVendedor && <p className="text-xs text-rose-600">{errorVendedor}</p>}
+            <button
+              type="submit"
+              disabled={activandoVendedor}
+              className="w-full bg-[#B15A2A] hover:bg-[#8C4620] text-white font-medium text-sm py-3 rounded-full transition-colors disabled:opacity-50"
+            >
+              {activandoVendedor ? "Activando..." : "Activar cuenta de vendedor"}
+            </button>
+          </form>
+          <button onClick={cerrarSesion} className="text-xs text-[#8A7561] hover:text-[#75604F] mt-5 block mx-auto">
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${display.variable} min-h-screen bg-white text-[#241A14] p-6 md:p-10 grid grid-cols-1 lg:grid-cols-2 gap-8`}>
       {/* COLUMNA IZQUIERDA: FORMULARIO */}
       <div className="bg-[#FBF6F0] border border-[#E9DFD2] rounded-2xl p-7 h-fit">
-        <h1 className="text-2xl font-medium text-[#B15A2A] mb-6" style={displayFont}>
-          Portal del Minero — Registrar Mineral
-        </h1>
-
-        <button
-          onClick={manejarAutenticacionPrueba}
-          className={`w-full mb-6 py-2.5 px-5 rounded-full font-medium text-sm border transition-colors ${
-            autenticado ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-[#F3ECE2] border-[#E9DFD2] hover:bg-[#EADFCF] text-[#241A14]"
-          }`}
-        >
-          {autenticado ? "✓ Usuario de Prueba Conectado" : "Autenticar Usuario de Prueba"}
-        </button>
+        <div className="flex items-start justify-between mb-6">
+          <h1 className="text-2xl font-medium text-[#B15A2A]" style={displayFont}>
+            Portal del Minero — Registrar Mineral
+          </h1>
+        </div>
+        <p className="text-xs text-emerald-600 font-semibold mb-6">✓ Conectado como {email} · <button onClick={cerrarSesion} className="text-[#8A7561] hover:text-rose-600 font-normal underline">Cerrar sesión</button></p>
 
         <LotUploadForm onSuccess={obtenerMisLotes} />
       </div>

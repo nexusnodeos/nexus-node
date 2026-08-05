@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Fraunces } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
@@ -42,12 +44,6 @@ interface Criterios {
   presupuesto_maximo_usd: string;
 }
 
-// Cuenta de prueba para simular al comprador (Rodrigo) durante el piloto.
-// El rol="comprador" en los metadatos hace que el trigger on_auth_user_created
-// de Supabase cree automáticamente el perfil correcto (ver migración de hoy).
-const EMAIL_PRUEBA_COMPRADOR = 'comprador.demo@nexus.com';
-const PASSWORD_PRUEBA_COMPRADOR = 'NexusComprador123!';
-
 const CRITERIOS_VACIOS: Criterios = {
   mineral_preferido: 'Cobre (Concentrado)',
   volumen_minimo_toneladas: '',
@@ -56,6 +52,7 @@ const CRITERIOS_VACIOS: Criterios = {
 };
 
 export default function BuyerCatalogPage() {
+  const router = useRouter();
   const [lotes, setLotes] = useState<Lote[]>([]);
   const [misOfertas, setMisOfertas] = useState<MiOferta[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -70,7 +67,6 @@ export default function BuyerCatalogPage() {
 
   // --- Autenticación real de comprador ---
   const [autenticado, setAutenticado] = useState(false);
-  const [autenticando, setAutenticando] = useState(false);
   const [emailComprador, setEmailComprador] = useState<string | null>(null);
   const [compradorId, setCompradorId] = useState<string | null>(null);
 
@@ -164,48 +160,14 @@ export default function BuyerCatalogPage() {
     })();
   }, []);
 
-  const manejarAutenticacionComprador = async () => {
-    setAutenticando(true);
-    try {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: EMAIL_PRUEBA_COMPRADOR,
-        password: PASSWORD_PRUEBA_COMPRADOR,
-      });
-
-      let usuario = signInData?.user ?? null;
-
-      if (signInError) {
-        // No existe todavía: lo registramos con rol="comprador" en los metadatos.
-        // El trigger on_auth_user_created crea el perfil correcto automáticamente.
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: EMAIL_PRUEBA_COMPRADOR,
-          password: PASSWORD_PRUEBA_COMPRADOR,
-          options: {
-            data: { rol: 'comprador', nombre_empresa: 'Comprador Piloto (Rodrigo)' },
-            emailRedirectTo: `${window.location.origin}/comprador/catalogo`,
-          },
-        });
-
-        if (signUpError) {
-          alert('Error de autenticación de comprador: ' + signUpError.message);
-          return;
-        }
-        usuario = signUpData.user;
-      }
-
-      if (!usuario) {
-        alert('No se pudo autenticar al comprador de prueba.');
-        return;
-      }
-
-      setAutenticado(true);
-      setEmailComprador(usuario.email ?? EMAIL_PRUEBA_COMPRADOR);
-      setCompradorId(usuario.id);
-      await cargarCriterios(usuario.id);
-      await cargarDatos(usuario.email ?? EMAIL_PRUEBA_COMPRADOR);
-    } finally {
-      setAutenticando(false);
-    }
+  const cerrarSesionComprador = async () => {
+    await supabase.auth.signOut();
+    setAutenticado(false);
+    setEmailComprador(null);
+    setCompradorId(null);
+    setCriterios(CRITERIOS_VACIOS);
+    setCriteriosGuardados(false);
+    cargarDatos(null);
   };
 
   const guardarCriterios = async () => {
@@ -256,7 +218,7 @@ export default function BuyerCatalogPage() {
 
   const handleOpenReserveModal = (lote: Lote) => {
     if (!autenticado || !emailComprador) {
-      alert('Primero autentícate como comprador (panel derecho) para poder reservar un lote.');
+      router.push('/login?redirect=/comprador/catalogo');
       return;
     }
     setSelectedLot(lote);
@@ -407,20 +369,27 @@ export default function BuyerCatalogPage() {
           {!autenticado ? (
             <>
               <p className="text-xs text-[#75604F] mb-3">
-                Autentícate como comprador para reservar lotes y para que el Agente Matchmaker
+                Inicia sesión como comprador para reservar lotes y para que el Agente Matchmaker
                 pueda calificarte automáticamente contra nuevos lotes que se publiquen.
               </p>
-              <button
-                onClick={manejarAutenticacionComprador}
-                disabled={autenticando}
-                className="w-full py-2.5 px-4 rounded-full font-semibold border bg-[#F3ECE2] border-[#E9DFD2] hover:bg-[#EADFCF] text-[#241A14] text-xs transition-colors"
-              >
-                {autenticando ? 'Conectando...' : 'Autenticar como Comprador de Prueba'}
-              </button>
+              <div className="flex flex-col gap-2">
+                <Link
+                  href="/registro?redirect=/comprador/catalogo"
+                  className="w-full py-2.5 px-4 rounded-full font-semibold bg-[#B15A2A] hover:bg-[#8C4620] text-white text-xs text-center transition-colors"
+                >
+                  Crear cuenta
+                </Link>
+                <Link
+                  href="/login?redirect=/comprador/catalogo"
+                  className="w-full py-2.5 px-4 rounded-full font-semibold border bg-[#F3ECE2] border-[#E9DFD2] hover:bg-[#EADFCF] text-[#241A14] text-xs text-center transition-colors"
+                >
+                  Ya tengo cuenta
+                </Link>
+              </div>
             </>
           ) : (
             <>
-              <p className="text-xs text-emerald-600 font-semibold mb-4">✓ Conectado como {emailComprador}</p>
+              <p className="text-xs text-emerald-600 font-semibold mb-4">✓ Conectado como {emailComprador} · <button onClick={cerrarSesionComprador} className="text-[#8A7561] hover:text-rose-600 font-normal underline">Cerrar sesión</button></p>
               <h3 className="text-[11px] font-bold text-[#75604F] uppercase tracking-wider mb-2">
                 Criterios de Compra (alimentan al Matchmaker)
               </h3>

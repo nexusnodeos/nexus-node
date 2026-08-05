@@ -228,7 +228,7 @@ function Nav() {
         </Link>
       </div>
       <div className="flex items-center gap-1">
-        <BtnGhost href="/minero">Iniciar sesión</BtnGhost>
+        <BtnGhost href="/login">Iniciar sesión</BtnGhost>
         <BtnPrimary href="/comprador/catalogo">Ver Marketplace</BtnPrimary>
       </div>
     </nav>
