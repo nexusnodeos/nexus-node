@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Fraunces } from 'next/font/google';
+import { Fraunces, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
 
 const display = Fraunces({
@@ -11,6 +11,11 @@ const display = Fraunces({
   weight: ['500', '600', '700'],
   style: ['normal', 'italic'],
   variable: '--font-display',
+});
+const sans = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-sans',
 });
 const displayFont = { fontFamily: 'var(--font-display)' } as const;
 
@@ -255,7 +260,7 @@ export default function BuyerCatalogPage() {
   };
 
   return (
-    <div className={`${display.variable} min-h-screen bg-white text-[#241A14] p-6 md:p-10 font-body grid grid-cols-1 lg:grid-cols-3 gap-8`}>
+    <div className={`${display.variable} ${sans.variable} min-h-screen bg-white text-[#241A14] p-6 md:p-10 grid grid-cols-1 lg:grid-cols-3 gap-8`} style={{ fontFamily: 'var(--font-sans)' }}>
       <div className="lg:col-span-2">
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
