@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Fraunces, Inter } from 'next/font/google';
 import { supabase } from '@/lib/supabase';
+import BackHome from '@/components/BackHome';
 
 const display = Fraunces({
   subsets: ['latin'],
@@ -260,7 +261,9 @@ export default function BuyerCatalogPage() {
   };
 
   return (
-    <div className={`${display.variable} ${sans.variable} min-h-screen bg-white text-[#241A14] p-6 md:p-10 grid grid-cols-1 lg:grid-cols-3 gap-8`} style={{ fontFamily: 'var(--font-sans)' }}>
+    <div className={`${display.variable} ${sans.variable} min-h-screen bg-white text-[#241A14] p-6 md:p-10`} style={{ fontFamily: 'var(--font-sans)' }}>
+      <BackHome className="mb-6 inline-flex" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2">
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -471,6 +474,7 @@ export default function BuyerCatalogPage() {
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* MODAL DE RESERVA */}

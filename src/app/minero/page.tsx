@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Fraunces, Inter } from "next/font/google";
 import { supabase } from "@/lib/supabase";
 import LotUploadForm from "@/components/LotUploadForm";
+import BackHome from "@/components/BackHome";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -175,7 +176,8 @@ export default function MineroPage() {
 
   if (estadoSesion === "sin_sesion") {
     return (
-      <div className={`${display.variable} ${sans.variable} min-h-screen bg-white flex items-center justify-center p-6 text-center`} style={{ fontFamily: "var(--font-sans)" }}>
+      <div className={`${display.variable} ${sans.variable} relative min-h-screen bg-white flex items-center justify-center p-6 text-center`} style={{ fontFamily: "var(--font-sans)" }}>
+        <BackHome className="absolute left-6 top-6" />
         <div className="w-full max-w-sm bg-[#FBF6F0] border border-[#E9DFD2] rounded-2xl p-8">
           <h1 className="text-xl font-medium text-[#241A14] mb-2" style={displayFont}>
             Necesitas una cuenta para publicar
@@ -198,7 +200,8 @@ export default function MineroPage() {
 
   if (estadoSesion === "necesita_vendedor") {
     return (
-      <div className={`${display.variable} ${sans.variable} min-h-screen bg-white flex items-center justify-center p-6`} style={{ fontFamily: "var(--font-sans)" }}>
+      <div className={`${display.variable} ${sans.variable} relative min-h-screen bg-white flex items-center justify-center p-6`} style={{ fontFamily: "var(--font-sans)" }}>
+        <BackHome className="absolute left-6 top-6" />
         <div className="w-full max-w-sm bg-[#FBF6F0] border border-[#E9DFD2] rounded-2xl p-8">
           <h1 className="text-xl font-medium text-[#241A14] mb-1" style={displayFont}>Conviértete en vendedor</h1>
           <p className="text-sm text-[#75604F] mb-6">
@@ -243,7 +246,9 @@ export default function MineroPage() {
   }
 
   return (
-    <div className={`${display.variable} ${sans.variable} min-h-screen bg-white text-[#241A14] p-6 md:p-10 grid grid-cols-1 lg:grid-cols-2 gap-8`} style={{ fontFamily: "var(--font-sans)" }}>
+    <div className={`${display.variable} ${sans.variable} min-h-screen bg-white text-[#241A14] p-6 md:p-10`} style={{ fontFamily: "var(--font-sans)" }}>
+      <BackHome className="mb-6 inline-flex" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* COLUMNA IZQUIERDA: FORMULARIO */}
       <div className="bg-[#FBF6F0] border border-[#E9DFD2] rounded-2xl p-7 h-fit">
         <div className="flex items-start justify-between mb-6">
@@ -321,6 +326,7 @@ export default function MineroPage() {
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   );
