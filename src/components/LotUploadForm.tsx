@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 const TIPOS_DOCUMENTO = [
@@ -8,6 +8,11 @@ const TIPOS_DOCUMENTO = [
   { value: "certificado_alex_stewart", label: "Certificado Alex Stewart" },
   { value: "pedimento", label: "Pedimento de Exportación" },
 ];
+
+// Clave de localStorage para el borrador. Solo guarda los campos de texto --
+// los archivos (File) no se pueden serializar y hay que volver a adjuntarlos
+// si se pierde la sesión del navegador (limitación real, no evitable).
+const CLAVE_BORRADOR = "nexus_borrador_lote";
 
 interface ArchivoPendiente {
   tipo: string;
@@ -18,6 +23,31 @@ interface LotUploadFormProps {
   onSuccess?: () => void;
 }
 
+function cargarBorrador() {
+  if (typeof window === "undefined") return null;
+  try {
+    const guardado = window.localStorage.getItem(CLAVE_BORRADOR);
+    return guardado ? JSON.parse(guardado) : null;
+  } catch {
+    return null;
+  }
+}
+
+function guardarBorrador(datos: { toneladas: string; pureza: string; puerto: string; precio: string }) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(datos));
+  } catch {
+    // Si localStorage falla (modo incógnito estricto, cuota llena, etc.),
+    // no rompemos el formulario -- simplemente no hay borrador esa vez.
+  }
+}
+
+function borrarBorrador() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(CLAVE_BORRADOR);
+}
+
 export default function LotUploadForm({ onSuccess }: LotUploadFormProps) {
   const [toneladas, setToneladas] = useState("");
   const [pureza, setPureza] = useState("");
@@ -26,6 +56,27 @@ export default function LotUploadForm({ onSuccess }: LotUploadFormProps) {
   const [archivos, setArchivos] = useState<ArchivoPendiente[]>([]);
   const [tipoSeleccionado, setTipoSeleccionado] = useState(TIPOS_DOCUMENTO[0].value);
   const [registrando, setRegistrando] = useState(false);
+  const [borradorRestaurado, setBorradorRestaurado] = useState(false);
+
+  // Al montar: si hay un borrador guardado de una sesión anterior (ej. se
+  // cortó la conexión y el usuario recargó la página), lo restauramos.
+  useEffect(() => {
+    const borrador = cargarBorrador();
+    if (borrador) {
+      setToneladas(borrador.toneladas ?? "");
+      setPureza(borrador.pureza ?? "");
+      setPuerto(borrador.puerto ?? "Manzanillo");
+      setPrecio(borrador.precio ?? "");
+      setBorradorRestaurado(true);
+    }
+  }, []);
+
+  // Cada vez que cambia un campo, se guarda el borrador -- esto no depende
+  // de la red en absoluto (localStorage es 100% local), así que sobrevive
+  // un corte de conexión sin problema.
+  useEffect(() => {
+    guardarBorrador({ toneladas, pureza, puerto, precio });
+  }, [toneladas, pureza, puerto, precio]);
 
   function agregarArchivo(file: File) {
     setArchivos((prev) => [...prev, { tipo: tipoSeleccionado, file }]);
@@ -33,6 +84,15 @@ export default function LotUploadForm({ onSuccess }: LotUploadFormProps) {
 
   function quitarArchivo(index: number) {
     setArchivos((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function descartarBorrador() {
+    setToneladas("");
+    setPureza("");
+    setPuerto("Manzanillo");
+    setPrecio("");
+    borrarBorrador();
+    setBorradorRestaurado(false);
   }
 
   const manejarRegistroLote = async (e: React.FormEvent) => {
@@ -90,6 +150,8 @@ export default function LotUploadForm({ onSuccess }: LotUploadFormProps) {
       setPureza("");
       setPrecio("");
       setArchivos([]);
+      borrarBorrador();
+      setBorradorRestaurado(false);
       onSuccess?.();
     } catch (error: any) {
       alert("Error al registrar lote: " + error.message);
@@ -100,6 +162,14 @@ export default function LotUploadForm({ onSuccess }: LotUploadFormProps) {
 
   return (
     <form onSubmit={manejarRegistroLote} className="space-y-4">
+      {borradorRestaurado && (
+        <div className="flex items-center justify-between bg-amber-50 border border-amber-300 rounded-xl px-3 py-2 text-xs text-amber-800">
+          <span>📋 Se restauró un borrador guardado localmente (ej. de una conexión interrumpida).</span>
+          <button type="button" onClick={descartarBorrador} className="font-semibold underline shrink-0 ml-2">
+            Descartar
+          </button>
+        </div>
+      )}
       <div>
         <label className="block text-xs font-semibold text-[#75604F] uppercase mb-1">Toneladas</label>
         <input type="number" required value={toneladas} onChange={(e) => setToneladas(e.target.value)} className="w-full bg-white border border-[#E9DFD2] rounded-xl px-3 py-2.5 text-[#241A14] focus:outline-none focus:border-[#B15A2A]" placeholder="Ej. 500" />
