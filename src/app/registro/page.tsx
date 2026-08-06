@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Fraunces } from "next/font/google";
+import { Fraunces, Inter } from "next/font/google";
 import { supabase } from "@/lib/supabase";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 
@@ -11,6 +11,11 @@ const display = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
   variable: "--font-display",
+});
+const sans = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-sans",
 });
 const displayFont = { fontFamily: "var(--font-display)" } as const;
 
@@ -167,7 +172,7 @@ function RegistroForm() {
 
 export default function RegistroPage() {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-6">
+    <div className={`${display.variable} ${sans.variable} min-h-screen bg-white flex items-center justify-center p-6`} style={{ fontFamily: "var(--font-sans)" }}>
       <div className="w-full max-w-sm bg-[#FBF6F0] border border-[#E9DFD2] rounded-2xl p-8">
         <Suspense fallback={null}>
           <RegistroForm />
