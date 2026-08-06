@@ -5,6 +5,8 @@ import Image from "next/image";
 import { Fraunces, Inter } from "next/font/google";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -209,6 +211,90 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   );
 }
 
+/* ---------- sesión / saludo ---------- */
+
+function primerNombre(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null): string {
+  if (!user) return "";
+  const nombreCompleto =
+    (user.user_metadata?.full_name as string | undefined) ||
+    (user.user_metadata?.name as string | undefined) ||
+    (user.email ? user.email.split("@")[0] : "");
+  const primero = nombreCompleto.trim().split(/\s+/)[0] || "Usuario";
+  return primero.charAt(0).toUpperCase() + primero.slice(1);
+}
+
+function AccountMenu() {
+  const router = useRouter();
+  const [nombre, setNombre] = useState<string | null>(null);
+  const [abierto, setAbierto] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setNombre(data.session?.user ? primerNombre(data.session.user) : null);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setNombre(session?.user ? primerNombre(session.user) : null);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const cerrarSesion = async () => {
+    await supabase.auth.signOut();
+    setAbierto(false);
+    router.push("/");
+  };
+
+  if (nombre === null) {
+    return <BtnGhost href="/login">Iniciar sesión</BtnGhost>;
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setAbierto((v) => !v)}
+        className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors hover:bg-black/[0.03]"
+        style={{ color: C.ink, fontFamily: "var(--font-sans)" }}
+      >
+        Hola, {nombre}
+        <span className="text-[10px]" style={{ color: C.inkSoft }}>▾</span>
+      </button>
+      {abierto && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setAbierto(false)} />
+          <div
+            className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border bg-white py-1.5 shadow-lg"
+            style={{ borderColor: C.line }}
+          >
+            <Link
+              href="/comprador/catalogo"
+              className="block px-4 py-2.5 text-sm hover:bg-[#FBF6F0]"
+              style={{ color: C.ink, fontFamily: "var(--font-sans)" }}
+              onClick={() => setAbierto(false)}
+            >
+              Ver Marketplace
+            </Link>
+            <Link
+              href="/minero"
+              className="block px-4 py-2.5 text-sm hover:bg-[#FBF6F0]"
+              style={{ color: C.ink, fontFamily: "var(--font-sans)" }}
+              onClick={() => setAbierto(false)}
+            >
+              Publicar un lote
+            </Link>
+            <button
+              onClick={cerrarSesion}
+              className="block w-full px-4 py-2.5 text-left text-sm hover:bg-[#FBF6F0]"
+              style={{ color: C.inkSoft, fontFamily: "var(--font-sans)" }}
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ---------- nav ---------- */
 
 function Nav() {
@@ -228,7 +314,7 @@ function Nav() {
         </Link>
       </div>
       <div className="flex items-center gap-1">
-        <BtnGhost href="/login">Iniciar sesión</BtnGhost>
+        <AccountMenu />
         <BtnPrimary href="/comprador/catalogo">Ver Marketplace</BtnPrimary>
       </div>
     </nav>

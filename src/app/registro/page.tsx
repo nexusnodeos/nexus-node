@@ -24,6 +24,7 @@ function RegistroForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/comprador/catalogo";
 
+  const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmar, setConfirmar] = useState("");
@@ -50,6 +51,7 @@ function RegistroForm() {
         email,
         password,
         options: {
+          data: nombre.trim() ? { full_name: nombre.trim() } : undefined,
           emailRedirectTo: `${window.location.origin}/bienvenida?redirect=${encodeURIComponent(redirectTo)}`,
         },
       });
@@ -116,6 +118,17 @@ function RegistroForm() {
       </div>
 
       <form onSubmit={manejarRegistro} className="space-y-4">
+        <div>
+          <label className="block text-xs font-semibold text-[#75604F] uppercase mb-1">Nombre</label>
+          <input
+            type="text"
+            required
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            className="w-full bg-white border border-[#E9DFD2] rounded-xl px-3 py-2.5 text-[#241A14] focus:outline-none focus:border-[#B15A2A]"
+            placeholder="Tu nombre"
+          />
+        </div>
         <div>
           <label className="block text-xs font-semibold text-[#75604F] uppercase mb-1">Correo</label>
           <input
