@@ -187,7 +187,7 @@ function RegistroForm() {
 export default function RegistroPage() {
   return (
     <div className={`${display.variable} ${sans.variable} relative min-h-screen bg-white flex items-center justify-center p-6`} style={{ fontFamily: "var(--font-sans)" }}>
-      <BackHome className="absolute left-6 top-6" />
+      <BackHome className="absolute left-6 right-6 top-6" />
       <div className="w-full max-w-sm bg-[#FBF6F0] border border-[#E9DFD2] rounded-2xl p-8">
         <Suspense fallback={null}>
           <RegistroForm />
