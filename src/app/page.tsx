@@ -303,9 +303,10 @@ function Nav() {
       className="sticky top-0 z-50 flex items-center justify-between px-[6%] py-6 backdrop-blur-md"
       style={{ background: "rgba(255,255,255,0.85)" }}
     >
-      <div className="text-[17px] font-semibold tracking-tight" style={{ color: C.ink, fontFamily: "var(--font-display)" }}>
+      <Link href="/" className="flex items-center gap-2.5 text-[17px] font-semibold tracking-tight" style={{ color: C.ink, fontFamily: "var(--font-display)" }}>
+        <Image src="/logo.png" alt="Nexus Node" width={30} height={30} className="rounded-full" priority />
         Nexus <span style={{ color: C.copper, fontStyle: "italic" }}>Node</span>
-      </div>
+      </Link>
       <div className="hidden gap-9 md:flex">
         <NavLink href="#como-funciona">Cómo funciona</NavLink>
         <NavLink href="#plataforma">Plataforma</NavLink>
